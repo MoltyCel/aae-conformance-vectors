@@ -1,0 +1,29 @@
+name: conformance
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install cryptography jsonschema
+      - name: Validate vectors against schema
+        run: python3 tools/validate_schema.py
+      - name: Run reference verifier (must be 15/15)
+        run: python3 examples/python-verify.py
+      - name: Verify vectors are reproducible from the committed test keys
+        run: |
+          python3 tools/build_vectors.py
+          if ! git diff --quiet -- vectors/; then
+            echo "vectors/ differs from a fresh rebuild — commit the regenerated vectors"
+            git --no-pager diff -- vectors/
+            exit 1
+          fi

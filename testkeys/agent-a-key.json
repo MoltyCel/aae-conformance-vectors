@@ -1,0 +1,11 @@
+{
+  "did": "did:web:example.com:agent-a",
+  "kid": "did:web:example.com:agent-a#key-1",
+  "note": "TEST ONLY \u2014 public/private keypair committed for reproducible vectors. DO NOT USE IN PRODUCTION.",
+  "jwk": {
+    "kty": "OKP",
+    "crv": "Ed25519",
+    "x": "CP2VcUqdlf1XZ2tF-b33po62PVIhNL1jV04hJbZTYzc",
+    "d": "Bz2DhFoopNLE8GXEXq4-I35HWdn55eMeMA1C0hDaW-A"
+  }
+}

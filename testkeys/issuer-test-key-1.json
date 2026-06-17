@@ -1,0 +1,11 @@
+{
+  "did": "did:web:example.com:registry",
+  "kid": "did:web:example.com:registry#key-1",
+  "note": "TEST ONLY \u2014 public/private keypair committed for reproducible vectors. DO NOT USE IN PRODUCTION.",
+  "jwk": {
+    "kty": "OKP",
+    "crv": "Ed25519",
+    "x": "nVOnpEMeKZsM65UMy9W9b0hFzdnHvTjhyeTiZJD4-Q4",
+    "d": "0e31XQowccBb62QnpdK8h9WR0ZSg0MH-bVlDmEYmLT0"
+  }
+}
