@@ -80,6 +80,13 @@ responses keyed by AAE id (step 8), and the ordered ancestor chain for delegated
 AAEs (step 9). DID resolution is offline against the documents in
 `testkeys/did-documents/`.
 
+## External conformance suites
+
+External implementers of related specifications can contribute vectors under
+`interop/<spec-name>/`. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+Current external suites: (none yet — first PR pending)
+
 ## Test keys
 
 The keypairs under `testkeys/` are committed so that the signed vectors are
@@ -94,6 +101,11 @@ Vector set version: 1.0.0. Tracks: draft-kroehl-agentic-trust-aae-00.
 Later revisions are published as 1.1.0, 1.2.0, and so on, tracking draft
 revisions. A change to the draft that alters a verifier outcome is a minor
 version bump with the changed vectors noted in the release.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for vector requirements, cross-spec
+contributions, and the PR process.
 
 ## License
 
