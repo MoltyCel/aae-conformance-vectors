@@ -25,5 +25,6 @@
     "verification_step": 9,
     "rejection_reason": "delegation_currency_mismatch"
   },
-  "rationale": "Section 3 requires a currency-valued delegated constraint to use the same currency as the parent unless an explicitly configured conversion policy exists; if the currencies differ and no such policy exists, the delegated AAE MUST be rejected. The child uses EUR against a USD parent, so it is rejected at step 9."
+  "rationale": "Section 3 requires a currency-valued delegated constraint to use the same currency as the parent unless an explicitly configured conversion policy exists; if the currencies differ and no such policy exists, the delegated AAE MUST be rejected. The child uses EUR against a USD parent, so it is rejected at step 9.",
+  "verification_mode": "structural"
 }

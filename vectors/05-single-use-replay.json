@@ -25,5 +25,6 @@
     "verification_step": 5,
     "rejection_reason": "single_use_already_consumed"
   },
-  "rationale": "Section 2.4 and \u00a75 step 5 require an atomic check-and-record keyed by the VC id when single_use is true; an id already recorded MUST be rejected. The context marks this id as already consumed, so the replay is rejected at step 5."
+  "rationale": "Section 2.4 and \u00a75 step 5 require an atomic check-and-record keyed by the VC id when single_use is true; an id already recorded MUST be rejected. The context marks this id as already consumed, so the replay is rejected at step 5.",
+  "verification_mode": "runtime"
 }

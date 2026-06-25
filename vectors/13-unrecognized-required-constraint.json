@@ -22,5 +22,6 @@
     "verification_step": 7,
     "rejection_reason": "unrecognized_required_constraint"
   },
-  "rationale": "Section 2.3 and \u00a75 step 7 require rejecting an AAE when an unrecognized constraint is marked required:true (or omits required, which defaults to true). 'geo_fence' is unrecognized and required, so the AAE is rejected at step 7."
+  "rationale": "Section 2.3 and \u00a75 step 7 require rejecting an AAE when an unrecognized constraint is marked required:true (or omits required, which defaults to true). 'geo_fence' is unrecognized and required, so the AAE is rejected at step 7.",
+  "verification_mode": "structural"
 }

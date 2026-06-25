@@ -22,5 +22,6 @@
     "verification_step": 2,
     "rejection_reason": "cty_not_aae_json"
   },
-  "rationale": "Section 2.1 requires the protected-header cty parameter to be aae+json, and \u00a75 step 2 rejects the AAE if it is not. The signature is valid but cty is application/json, so the AAE is rejected at step 2."
+  "rationale": "Section 2.1 requires the protected-header cty parameter to be aae+json, and \u00a75 step 2 rejects the AAE if it is not. The signature is valid but cty is application/json, so the AAE is rejected at step 2.",
+  "verification_mode": "structural"
 }

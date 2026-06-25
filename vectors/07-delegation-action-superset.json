@@ -25,5 +25,6 @@
     "verification_step": 9,
     "rejection_reason": "delegated_actions_not_subset"
   },
-  "rationale": "Section 3 requires the delegated mandate.actions to be a subset of the parent. 'pay' is absent from the parent (read, book), so the delegated AAE is not strictly subordinate and is rejected at step 9."
+  "rationale": "Section 3 requires the delegated mandate.actions to be a subset of the parent. 'pay' is absent from the parent (read, book), so the delegated AAE is not strictly subordinate and is rejected at step 9.",
+  "verification_mode": "structural"
 }

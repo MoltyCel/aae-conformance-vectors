@@ -23,5 +23,6 @@
     "verification_step": 3,
     "rejection_reason": "not_yet_valid_not_before"
   },
-  "rationale": "Section 2.4 states the AAE MUST NOT be accepted before not_before, and not before the later of validFrom and not_before. 07:00Z precedes the 08:00Z not_before, so the AAE is rejected at step 3."
+  "rationale": "Section 2.4 states the AAE MUST NOT be accepted before not_before, and not before the later of validFrom and not_before. 07:00Z precedes the 08:00Z not_before, so the AAE is rejected at step 3.",
+  "verification_mode": "runtime"
 }

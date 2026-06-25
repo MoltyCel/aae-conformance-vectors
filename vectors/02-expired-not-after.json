@@ -23,5 +23,6 @@
     "verification_step": 3,
     "rejection_reason": "expired_not_after"
   },
-  "rationale": "Section 2.4 states relying parties MUST reject expired AAEs; \u00a75 step 3 confirms current time is within not_before and not_after. 17:00Z is after the 16:00Z not_after, so the AAE is rejected at step 3."
+  "rationale": "Section 2.4 states relying parties MUST reject expired AAEs; \u00a75 step 3 confirms current time is within not_before and not_after. 17:00Z is after the 16:00Z not_after, so the AAE is rejected at step 3.",
+  "verification_mode": "runtime"
 }

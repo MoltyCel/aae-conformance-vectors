@@ -4,7 +4,7 @@
   "title": "AAE Conformance Vector",
   "description": "Schema for a single AAE conformance test vector (draft-kroehl-agentic-trust-aae-00).",
   "type": "object",
-  "required": ["id", "name", "description", "section_ref", "input", "expected", "rationale"],
+  "required": ["id", "name", "description", "section_ref", "verification_mode", "input", "expected", "rationale"],
   "additionalProperties": false,
   "properties": {
     "id": {
@@ -16,6 +16,11 @@
     "section_ref": {
       "type": "string",
       "pattern": "draft-kroehl-agentic-trust-aae-00"
+    },
+    "verification_mode": {
+      "type": "string",
+      "enum": ["runtime", "structural"],
+      "description": "How the expected verdict is reached. 'structural' = determined by document-only properties (signature, schema/cty, delegation subset/field-compares/monotonicity/depth/cycle); a document-only verifier reaches the correct verdict. 'runtime' = requires live external state (clock for the §2.4 validity window, revocation lookup, or single-use consumed-id tracking); a document-only verifier would diverge. This axis is verdict DERIVATION, orthogonal to TechSpec v0.9 §17 enforcement (verdict ACTION)."
     },
     "input": {
       "type": "object",

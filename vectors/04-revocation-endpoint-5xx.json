@@ -27,5 +27,6 @@
     "verification_step": 8,
     "rejection_reason": "revocation_status_indeterminate"
   },
-  "rationale": "Section 2.4 requires that when revocation status cannot be determined \u2014 for example on an HTTP 5xx response \u2014 the relying party MUST reject the AAE. No locally configured fail-open policy applies, so the default fail-closed rule rejects at step 8."
+  "rationale": "Section 2.4 requires that when revocation status cannot be determined \u2014 for example on an HTTP 5xx response \u2014 the relying party MUST reject the AAE. No locally configured fail-open policy applies, so the default fail-closed rule rejects at step 8.",
+  "verification_mode": "runtime"
 }

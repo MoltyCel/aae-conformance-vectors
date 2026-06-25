@@ -363,24 +363,31 @@ def main() -> int:
     files = sorted(glob.glob(os.path.join(VECTORS_DIR, "*.json")))
     passed = 0
     failures = []
+    mode_counts = {"runtime": 0, "structural": 0}
     for path in files:
         with open(path) as fh:
             vector = json.load(fh)
         got = verify(vector["input"]["secured_aae"], vector["input"]["context"])
         exp = vector["expected"]
+        # verification_mode is surfaced for visibility only; it does not affect
+        # the verdict (which is derived purely by the Section 5 algorithm above).
+        mode = vector.get("verification_mode", "?")
+        if mode in mode_counts:
+            mode_counts[mode] += 1
         ok = (got["result"] == exp["result"]
               and got["verification_step"] == exp.get("verification_step"))
         name = os.path.basename(path)
         if ok:
             passed += 1
-            print(f"PASS  {name:42s} {got['result']} @ step {got['verification_step']}"
+            print(f"PASS  {name:42s} {got['result']} @ step {got['verification_step']}  [{mode}]"
                   + (f" ({got['rejection_reason']})" if got["rejection_reason"] else ""))
         else:
             failures.append((name, exp, got))
             print(f"FAIL  {name:42s} expected {exp['result']}@{exp.get('verification_step')} "
-                  f"got {got['result']}@{got['verification_step']} ({got['rejection_reason']})")
+                  f"got {got['result']}@{got['verification_step']} ({got['rejection_reason']})  [{mode}]")
     total = len(files)
-    print(f"\n{passed}/{total} vectors passed")
+    print(f"\n{passed}/{total} vectors passed  "
+          f"({mode_counts['runtime']} runtime, {mode_counts['structural']} structural)")
     if failures:
         print("\nTo claim AAE conformance against draft-kroehl-agentic-trust-aae-00, all vectors must pass.")
         return 1

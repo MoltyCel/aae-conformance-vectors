@@ -25,5 +25,6 @@
     "verification_step": 9,
     "rejection_reason": "delegated_constraint_relaxed"
   },
-  "rationale": "Section 3 requires a delegated numeric upper-bound constraint value to be less than or equal to the parent value. 1000 USD exceeds the parent's 500 USD, so the delegated AAE is not strictly subordinate and is rejected at step 9."
+  "rationale": "Section 3 requires a delegated numeric upper-bound constraint value to be less than or equal to the parent value. 1000 USD exceeds the parent's 500 USD, so the delegated AAE is not strictly subordinate and is rejected at step 9.",
+  "verification_mode": "structural"
 }

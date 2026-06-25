@@ -26,5 +26,6 @@
     "verification_step": 9,
     "rejection_reason": "delegation_depth_exceeded"
   },
-  "rationale": "Section 3 requires depth to not exceed max_depth, and \u00a75 step 9 enforces depth limits. The presented AAE has depth 2 with max_depth 1, so it is rejected at step 9."
+  "rationale": "Section 3 requires depth to not exceed max_depth, and \u00a75 step 9 enforces depth limits. The presented AAE has depth 2 with max_depth 1, so it is rejected at step 9.",
+  "verification_mode": "structural"
 }
