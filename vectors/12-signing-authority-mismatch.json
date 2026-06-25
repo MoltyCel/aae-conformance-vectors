@@ -22,5 +22,6 @@
     "verification_step": 1,
     "rejection_reason": "signing_authority_mismatch"
   },
-  "rationale": "Section 5 step 1 requires that for a non-delegated AAE the signing DID be identical to the Verifiable Credential issuer. The signature is cryptographically valid but the signing DID (agent-a) differs from the issuer (registry), so the AAE is rejected at step 1."
+  "rationale": "Section 5 step 1 requires that for a non-delegated AAE the signing DID be identical to the Verifiable Credential issuer. The signature is cryptographically valid but the signing DID (agent-a) differs from the issuer (registry), so the AAE is rejected at step 1.",
+  "verification_mode": "structural"
 }

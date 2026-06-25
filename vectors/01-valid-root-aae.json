@@ -23,5 +23,6 @@
     "verification_step": 7,
     "rejection_reason": null
   },
-  "rationale": "All required checks pass: valid EdDSA signature whose signing DID equals the issuer (\u00a75 step 1), well-formed payload with cty aae+json (step 2), current time inside not_before/not_after (step 3), subject binding satisfied (step 4), action 'book' present in mandate.actions (step 6), and both required constraints satisfied (step 7). No revocation_check and no delegation, so steps 8-9 do not apply."
+  "rationale": "All required checks pass: valid EdDSA signature whose signing DID equals the issuer (\u00a75 step 1), well-formed payload with cty aae+json (step 2), current time inside not_before/not_after (step 3), subject binding satisfied (step 4), action 'book' present in mandate.actions (step 6), and both required constraints satisfied (step 7). No revocation_check and no delegation, so steps 8-9 do not apply.",
+  "verification_mode": "structural"
 }

@@ -26,5 +26,6 @@
     "verification_step": 9,
     "rejection_reason": "delegation_cycle_detected"
   },
-  "rationale": "Section 5 step 9 requires the relying party to maintain the set of AAE ids visited in the current path and to reject immediately if any id appears more than once. The presented id reappears among the ancestors, so the chain is rejected at step 9."
+  "rationale": "Section 5 step 9 requires the relying party to maintain the set of AAE ids visited in the current path and to reject immediately if any id appears more than once. The presented id reappears among the ancestors, so the chain is rejected at step 9.",
+  "verification_mode": "structural"
 }

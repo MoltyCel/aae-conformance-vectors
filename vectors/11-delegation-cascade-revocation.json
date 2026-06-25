@@ -30,5 +30,6 @@
     "verification_step": 9,
     "rejection_reason": "ancestor_revoked"
   },
-  "rationale": "Section 5 step 9 applies the revocation check to each ancestor AAE, and \u00a76.5 states a relying party that determines a parent AAE has been revoked SHOULD treat all descendants as invalid. The parent endpoint reports revoked:true, so the descendant is rejected at step 9."
+  "rationale": "Section 5 step 9 applies the revocation check to each ancestor AAE, and \u00a76.5 states a relying party that determines a parent AAE has been revoked SHOULD treat all descendants as invalid. The parent endpoint reports revoked:true, so the descendant is rejected at step 9.",
+  "verification_mode": "runtime"
 }

@@ -614,12 +614,35 @@ def main() -> None:
         "aae-vector-14": "14-cty-header-wrong.json",
         "aae-vector-15": "15-currency-mismatch-delegation.json",
     }
+    # verification_mode (#2, enum runtime|structural). Rule: runtime = the
+    # determining check consults live external state (clock for §2.4 validity,
+    # revocation lookup, single-use consumed-id); structural = the verdict is
+    # determined by document-only properties. Cross-checked vs the #2 thread
+    # (aeoess): 02/11 runtime, 07/08/15 structural.
+    mode = {
+        "aae-vector-01": "structural",  # ACCEPT baseline: doc-only verifier reaches correct ACCEPT
+        "aae-vector-02": "runtime",     # step 3 expired_not_after — needs clock
+        "aae-vector-03": "runtime",     # step 3 not_yet_valid — needs clock
+        "aae-vector-04": "runtime",     # step 8 revocation indeterminate — needs lookup
+        "aae-vector-05": "runtime",     # step 5 single-use replay — needs consumed-id state
+        "aae-vector-06": "structural",  # ACCEPT valid chain: subset/monotonic caps/depth from docs
+        "aae-vector-07": "structural",  # step 9 actions-not-subset — document compare
+        "aae-vector-08": "structural",  # step 9 numeric constraint relaxed — document compare
+        "aae-vector-09": "structural",  # step 9 depth exceeded — document field
+        "aae-vector-10": "structural",  # step 9 cycle — visited-id set over path documents
+        "aae-vector-11": "runtime",     # step 9 ancestor_revoked — needs revocation lookup
+        "aae-vector-12": "structural",  # step 1 signing-authority — signature/issuer compare
+        "aae-vector-13": "structural",  # step 7 unrecognized required constraint — document shape
+        "aae-vector-14": "structural",  # step 2 cty header — document field
+        "aae-vector-15": "structural",  # step 9 currency mismatch — document compare
+    }
     for v in vectors():
+        v["verification_mode"] = mode[v["id"]]
         fn = filenames[v["id"]]
         with open(os.path.join(VECTORS, fn), "w") as fh:
             json.dump(v, fh, indent=2)
             fh.write("\n")
-        print(f"wrote vectors/{fn}  [{v['expected']['result']} @ step {v['expected']['verification_step']}]")
+        print(f"wrote vectors/{fn}  [{v['expected']['result']} @ step {v['expected']['verification_step']}, {v['verification_mode']}]")
 
 
 if __name__ == "__main__":
