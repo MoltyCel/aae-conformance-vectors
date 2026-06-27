@@ -107,6 +107,17 @@ or is logged (advisory). A `runtime` vector can be evaluated under an `advisory`
 posture: you consult the clock/revocation to derive the verdict, then only log
 it. The two never substitute for each other.
 
+## Interoperability
+
+An independent implementation (aeoess / APS) cross-encoded 6 overlapping delegation-verification
+scenarios against the v1.1.0 `verification_mode` classification. The `runtime` / `structural`
+labels match 6/6, and the cross-encoded vectors pass this repo's reference verifier.
+Scope: a one-time cross-encoding (not a maintained set); alignment is at the label + verifier-verdict
+level, not byte-identical vectors (APS encodes in its own canonical format).
+Source: https://github.com/aeoess/aps-conformance-suite/tree/main/interop/aae-envelope/moltycel-format
+Mapping: runtime = {02 expired-not-after, 11 cascade-revocation};
+         structural = {06 valid-delegation, 07 action-superset, 08 constraint-relaxation, 15 currency-mismatch}.
+
 ## External conformance suites
 
 External implementers of related specifications can contribute vectors under
