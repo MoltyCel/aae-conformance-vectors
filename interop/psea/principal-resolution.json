@@ -1,0 +1,16 @@
+{
+  "status": "proposed convention, pending cross-run confirmation",
+  "note": "Single source for the join_who table. tools/build_interop_psea.py embeds this object into every vector's input.join_who, so the vectors and this file cannot drift.",
+  "canonical_space": "urn:interop:aae-psea:principal",
+  "unresolved_rule": "an identifier with no entry in the table is unresolved",
+  "principal_resolution": {
+    "aae": {
+      "did:web:example.com:principal-A": "urn:interop:aae-psea:principal:A",
+      "did:web:example.com:principal-B": "urn:interop:aae-psea:principal:B"
+    },
+    "secondary": {
+      "principal-A": "urn:interop:aae-psea:principal:A",
+      "principal-B": "urn:interop:aae-psea:principal:B"
+    }
+  }
+}

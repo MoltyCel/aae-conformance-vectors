@@ -14,7 +14,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install dependencies
-        run: pip install cryptography jsonschema
+        run: pip install cryptography jsonschema jcs
       - name: Validate vectors against schema
         run: python3 tools/validate_schema.py
       - name: Run reference verifier (must be 15/15)
@@ -25,5 +25,21 @@ jobs:
           if ! git diff --quiet -- vectors/; then
             echo "vectors/ differs from a fresh rebuild — commit the regenerated vectors"
             git --no-pager diff -- vectors/
+            exit 1
+          fi
+      - name: Check counterpart fixture integrity pins
+        run: |
+          cd interop/psea
+          shasum -a 256 -c psea-fixture-v0.sha256
+      - name: Validate composition vectors against the extension schema
+        run: python3 tools/validate_interop_schema.py
+      - name: Run composition checker (must be 3/3)
+        run: python3 examples/composition-verify.py
+      - name: Verify composition vectors are reproducible
+        run: |
+          python3 tools/build_interop_psea.py
+          if ! git diff --quiet -- interop/; then
+            echo "interop/ differs from a fresh rebuild — commit the regenerated files"
+            git --no-pager diff -- interop/
             exit 1
           fi

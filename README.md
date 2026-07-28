@@ -123,7 +123,19 @@ Mapping: runtime = {02 expired-not-after, 11 cascade-revocation};
 External implementers of related specifications can contribute vectors under
 `interop/<spec-name>/`. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
-Current external suites: (none yet — first PR pending)
+Current suites:
+
+- [`interop/psea/`](interop/psea/) — three composition vectors pairing an AAE
+  with a draft-yossif-psea-02 proof over the same action, against the fixture
+  published in [yuthent/psea-spec](https://github.com/yuthent/psea-spec)
+  (`conformance/interop-aae/`, pinned at sha256 `f7d89f4d…d188`). They test a
+  question neither profile answers alone: did the same human both mandate the
+  action and approve it. Two join axes — the action digest (**confirmed**, 32
+  octets recomputed identically on both sides) and the principal resolution
+  (**proposed**, awaiting confirmation from the PSEA side). All three vectors
+  carry `"status": "proposed"` and the set is not a conformance claim. Governed
+  by [`schema/interop-composition-vector-schema.json`](schema/interop-composition-vector-schema.json),
+  which extends rather than replaces the native vector schema.
 
 ## Test keys
 

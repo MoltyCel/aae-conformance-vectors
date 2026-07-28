@@ -1,0 +1,343 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/MoltyCel/aae-conformance-vectors/schema/interop-composition-vector-schema.json",
+  "title": "AAE cross-profile composition vector",
+  "description": "Schema for a composition vector that pairs one AAE (draft-kroehl-agentic-trust-aae-00) with one artifact from another profile and states the composed verdict. This schema EXTENDS the vector set; it does not replace schema/vector-schema.json, which continues to govern the 15 AAE-native vectors in vectors/ unchanged. A composition vector carries two join axes: join_what (the shared action digest) and join_who (the principal resolution). Both must hold for AUTHORIZED.",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "description",
+    "status",
+    "section_ref",
+    "verification_mode",
+    "input",
+    "expected",
+    "rationale"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^xp-[0-9]+$",
+      "description": "Composition-vector id, distinct from the aae-vector-NN namespace of the native set."
+    },
+    "name": { "type": "string", "minLength": 1 },
+    "description": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["proposed", "confirmed"],
+      "description": "'proposed' until a second independent implementation recomputes the vector, per Section 7 of draft-mih-sato-agent-accountability-composition-00. A composition vector whose join_who convention has not been confirmed by the counterpart profile MUST stay 'proposed'."
+    },
+    "section_ref": {
+      "type": "string",
+      "pattern": "draft-kroehl-agentic-trust-aae-00",
+      "description": "AAE draft sections exercised on the AAE side, plus any counterpart-profile references."
+    },
+    "verification_mode": {
+      "type": "string",
+      "enum": ["runtime", "structural"],
+      "description": "Same derivation axis as the native set: 'structural' = the verdict follows from document-only properties; 'runtime' = it requires live external state (clock, revocation lookup, consumed-id tracking). Orthogonal to enforcement posture."
+    },
+    "input": {
+      "type": "object",
+      "required": ["secured_aae", "context", "secondary_artifact", "join_what", "join_who"],
+      "additionalProperties": false,
+      "properties": {
+        "secured_aae": {
+          "type": "string",
+          "description": "The AAE side: JWS in compact serialization (header.payload.signature).",
+          "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
+        },
+        "context": {
+          "type": "object",
+          "description": "Facts a static file cannot reproduce live, passed to the AAE Section 5 algorithm unchanged. Same shape as the native vector set.",
+          "required": ["current_time"],
+          "properties": {
+            "current_time": { "type": "string", "format": "date-time" },
+            "requested_action": { "type": "string" },
+            "action_context": { "type": "object" },
+            "subject_binding": { "type": "object" },
+            "consumed_ids": { "type": "array", "items": { "type": "string" } },
+            "revocation_responses": { "type": "object" },
+            "delegation_chain": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": true
+        },
+        "secondary_artifact": {
+          "type": "object",
+          "description": "The non-AAE artifact this vector composes with. Embedded exactly as the counterpart profile published it — never re-encoded, re-signed, or normalized.",
+          "required": [
+            "profile",
+            "format",
+            "artifact_id",
+            "token",
+            "signer_kid",
+            "enrollment_binding",
+            "native_verdict",
+            "payload_digest",
+            "source"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "profile": {
+              "type": "string",
+              "description": "Counterpart profile identifier, e.g. draft-yossif-psea-02."
+            },
+            "format": {
+              "type": "string",
+              "description": "Wire format of `token`, e.g. 'JWS compact serialization, typ psea-proof+jwt, alg ES256'."
+            },
+            "artifact_id": {
+              "type": "string",
+              "description": "Identifier the source fixture gives the artifact, e.g. PSEA-A."
+            },
+            "token": {
+              "type": "string",
+              "description": "The artifact verbatim as delivered by the counterpart profile.",
+              "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
+            },
+            "signer_kid": {
+              "type": "string",
+              "description": "kid from the artifact's protected header; the key it is verified against must be the enrolled key carrying this kid."
+            },
+            "enrollment_binding": {
+              "type": "string",
+              "description": "The principal label the source fixture binds `signer_kid` to. Copied from the fixture, not derived."
+            },
+            "native_verdict": {
+              "type": "string",
+              "description": "The verdict the counterpart profile's own verifier returns for this artifact, as the source fixture records it. A composition vector never restates it."
+            },
+            "payload_digest": {
+              "$ref": "#/$defs/encoded_digest",
+              "description": "The action digest the artifact commits to, in the counterpart profile's own wire encoding."
+            },
+            "uv_anchoring": { "type": "string" },
+            "source": {
+              "type": "object",
+              "description": "Provenance of the artifact, so a reviewer can re-fetch and re-hash it.",
+              "required": ["repository", "path", "sha256"],
+              "additionalProperties": false,
+              "properties": {
+                "repository": { "type": "string" },
+                "path": { "type": "string" },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$",
+                  "description": "SHA-256 over the exact bytes of the source fixture file. Integrity pin."
+                }
+              }
+            }
+          }
+        },
+        "join_what": {
+          "type": "object",
+          "description": "Axis 1 — the shared action digest. Both profiles hash the SAME action payload with the SAME canonicalization and compare the resulting 32 octets.",
+          "required": [
+            "definition",
+            "comparison_rule",
+            "payload",
+            "payload_jcs_utf8",
+            "aae_digest",
+            "secondary_digest"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "definition": {
+              "type": "string",
+              "const": "SHA-256 over JCS (RFC 8785) of the action payload"
+            },
+            "comparison_rule": {
+              "type": "string",
+              "const": "compare the 32 octets, never the encoded strings",
+              "description": "A string comparison across encodings reports a mismatch on identical octets. Every wire form in this vector decodes to 32 octets before comparison."
+            },
+            "payload": {
+              "$ref": "#/$defs/integer_only_object",
+              "description": "The action payload in cleartext. Integers only: no floating-point numbers, no decimal fractions, no exponent notation (draft-yossif-psea-02 Section 2.5). Monetary values are integer minor units. JSON Schema cannot see the lexical form of a number, so tools/validate_interop_schema.py additionally re-parses the raw file bytes with a Decimal float hook and fails on any non-integer numeric literal."
+            },
+            "payload_jcs_utf8": {
+              "type": "string",
+              "minLength": 2,
+              "description": "The RFC 8785 canonical UTF-8 form of `payload`, recorded so a reviewer can diff canonicalizers without running one."
+            },
+            "aae_digest": { "$ref": "#/$defs/encoded_digest" },
+            "secondary_digest": { "$ref": "#/$defs/encoded_digest" }
+          }
+        },
+        "join_who": {
+          "type": "object",
+          "description": "Axis 2 — the principal resolution. PROPOSED CONVENTION, PENDING CROSS-RUN CONFIRMATION. Neither draft-kroehl-agentic-trust-aae-00 nor draft-yossif-psea-02 fixes a shared principal identifier space: AAE names a principal with a DID in mandate.principal_did, the counterpart profile binds a kid to a deployment-issued label. This table is the DECLARED mapping of both identifier forms onto one canonical space. It is data in the vector, never inferred by a verifier at run time. Until the counterpart profile confirms it, every vector using it carries status 'proposed'.",
+          "required": [
+            "status",
+            "canonical_space",
+            "unresolved_rule",
+            "principal_resolution"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "type": "string",
+              "const": "proposed convention, pending cross-run confirmation"
+            },
+            "canonical_space": {
+              "type": "string",
+              "description": "URN prefix of the canonical principal space both sides map into."
+            },
+            "unresolved_rule": {
+              "type": "string",
+              "const": "an identifier with no entry in the table is unresolved",
+              "description": "Absence of an entry is a missing input, not a conflict. It yields INDETERMINATE, never REFUSE."
+            },
+            "principal_resolution": {
+              "type": "object",
+              "required": ["aae", "secondary"],
+              "additionalProperties": false,
+              "properties": {
+                "aae": {
+                  "type": "object",
+                  "description": "mandate.principal_did -> canonical principal.",
+                  "additionalProperties": { "type": "string", "minLength": 1 }
+                },
+                "secondary": {
+                  "type": "object",
+                  "description": "enrollment_binding label -> canonical principal. The kid -> label hop comes from the counterpart fixture's own enrollment_bindings and is not restated here.",
+                  "additionalProperties": { "type": "string", "minLength": 1 }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "required": ["composition_verdict"],
+      "additionalProperties": false,
+      "properties": {
+        "composition_verdict": {
+          "type": "string",
+          "enum": ["AUTHORIZED", "REFUSE", "INDETERMINATE"],
+          "description": "AUTHORIZED: both natives pass, both digests join on 32 identical octets, and both principals resolve to the same canonical principal. REFUSE: a conflict was observed. INDETERMINATE: an input needed to decide is missing. REFUSE and INDETERMINATE never collapse into each other."
+        },
+        "reason": {
+          "type": ["string", "null"],
+          "enum": [
+            "principal_divergence",
+            "unresolved_binding",
+            "join_mismatch",
+            "aae_native_reject",
+            "secondary_native_reject",
+            null
+          ],
+          "description": "principal_divergence: both principals resolved and differ (REFUSE). unresolved_binding: at least one principal has no entry in the resolution table (INDETERMINATE). join_mismatch: the two action digests differ on the octets (INDETERMINATE). aae_native_reject / secondary_native_reject: a native verification failed and its rejection is propagated, so the composition layer never ran (REFUSE). Required whenever composition_verdict is not AUTHORIZED."
+        },
+        "aae_native": {
+          "type": "object",
+          "description": "What the unmodified AAE Section 5 algorithm returns for input.secured_aae.",
+          "required": ["result"],
+          "additionalProperties": false,
+          "properties": {
+            "result": { "type": "string", "enum": ["ACCEPT", "REJECT"] },
+            "verification_step": { "type": "integer", "minimum": 1, "maximum": 9 },
+            "rejection_reason": { "type": ["string", "null"] }
+          }
+        },
+        "secondary_native": {
+          "type": "object",
+          "description": "What the counterpart profile's own verification returns for input.secondary_artifact.",
+          "required": ["result"],
+          "additionalProperties": false,
+          "properties": {
+            "result": { "type": "string", "enum": ["VERIFIED", "FAILED"] },
+            "detail": { "type": ["string", "null"] }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "composition_verdict": { "const": "AUTHORIZED" } }
+          },
+          "then": {
+            "properties": { "reason": { "type": "null" } }
+          },
+          "else": {
+            "required": ["reason"],
+            "properties": { "reason": { "type": "string" } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "composition_verdict": { "const": "REFUSE" } },
+            "required": ["composition_verdict"]
+          },
+          "then": {
+            "properties": {
+              "reason": {
+                "enum": [
+                  "principal_divergence",
+                  "aae_native_reject",
+                  "secondary_native_reject"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "composition_verdict": { "const": "INDETERMINATE" } },
+            "required": ["composition_verdict"]
+          },
+          "then": {
+            "properties": {
+              "reason": { "enum": ["unresolved_binding", "join_mismatch"] }
+            }
+          }
+        }
+      ]
+    },
+    "rationale": { "type": "string", "minLength": 1 }
+  },
+  "$defs": {
+    "encoded_digest": {
+      "type": "object",
+      "description": "A digest carried in a declared wire encoding. The encoding is data, not a guess: a consumer decodes it to raw octets and compares octets. base64url-nopad is the AAE-native form (matching the sha-256:<base64url> shape used elsewhere in the draft), base64-pad is the PSEA wire form, hex is the third form seen in practice.",
+      "required": ["alg", "encoding", "value", "octets"],
+      "additionalProperties": false,
+      "properties": {
+        "alg": { "type": "string", "const": "sha-256" },
+        "encoding": {
+          "type": "string",
+          "enum": ["base64url-nopad", "base64-pad", "hex"]
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The digest as the producing side writes it, including any profile-specific prefix such as 'sha-256:'."
+        },
+        "octets": {
+          "type": "integer",
+          "const": 32,
+          "description": "Decoded length. Every allowed encoding normalizes to 32 octets; anything else is a length mismatch, not an encoding difference."
+        }
+      }
+    },
+    "integer_only_object": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/$defs/integer_only_value" }
+    },
+    "integer_only_value": {
+      "anyOf": [
+        { "type": "string" },
+        { "type": "boolean" },
+        { "type": "null" },
+        { "type": "integer", "multipleOf": 1 },
+        { "type": "array", "items": { "$ref": "#/$defs/integer_only_value" } },
+        { "$ref": "#/$defs/integer_only_object" }
+      ]
+    }
+  }
+}
