@@ -72,7 +72,8 @@
       "principal_resolution": {
         "aae": {
           "did:web:example.com:principal-A": "urn:interop:aae-psea:principal:A",
-          "did:web:example.com:principal-B": "urn:interop:aae-psea:principal:B"
+          "did:web:example.com:principal-B": "urn:interop:aae-psea:principal:B",
+          "did:web:example.com:principal-A-alias": "urn:interop:aae-psea:principal:A"
         },
         "secondary": {
           "principal-A": "urn:interop:aae-psea:principal:A",

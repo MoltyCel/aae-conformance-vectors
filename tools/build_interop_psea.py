@@ -89,6 +89,9 @@ AGENT_001 = "did:web:example.com:agent-001"
 
 PRINCIPAL_A_DID = "did:web:example.com:principal-A"
 PRINCIPAL_UNRESOLVED_DID = "did:web:example.com:principal-unresolved"
+# A second AAE-side identifier the enrolled table maps onto the SAME canonical
+# principal as PRINCIPAL_A_DID. Exercised by xp-6.
+PRINCIPAL_A_ALIAS_DID = "did:web:example.com:principal-A-alias"
 
 # The counterpart fixture's iat/exp window, 1785312000 .. 1785315600.
 NB = "2026-07-29T08:00:00Z"
@@ -243,8 +246,14 @@ def main() -> int:
                         AGENT_A, AGENT_001, PRINCIPAL_A_DID, join_b64url)
     e2 = build_envelope("urn:uuid:00000102-0000-4000-8000-0000000000b2",
                         AGENT_B, AGENT_001, PRINCIPAL_UNRESOLVED_DID, join_b64url)
+    # Identical to e1 in issuer, subject, actions, purpose, scope, constraints,
+    # validity and action_binding. The principal_did differs, and the vc id with
+    # it so two distinct envelopes never share an identifier.
+    e6 = build_envelope("urn:uuid:00000106-0000-4000-8000-0000000000c6",
+                        AGENT_A, AGENT_001, PRINCIPAL_A_ALIAS_DID, join_b64url)
     jws1 = sign_jws(e1, load_key("agent-a-key.json"))
     jws2 = sign_jws(e2, load_key("agent-b-key.json"))
+    jws6 = sign_jws(e6, load_key("agent-a-key.json"))
 
     os.makedirs(os.path.join(INTEROP, "aae-envelopes"), exist_ok=True)
     os.makedirs(os.path.join(INTEROP, "vectors"), exist_ok=True)
@@ -254,6 +263,9 @@ def main() -> int:
          "AAE grant naming principal-A. Used by XP-1 and XP-2."),
         ("E2-unresolved", jws2, e2,
          "AAE grant naming a principal with no entry in the resolution table. Used by XP-3."),
+        ("E3-principal-A-alias", jws6, e6,
+         "AAE grant naming a second identifier that the enrolled table maps onto the same "
+         "canonical principal as E1. Identical to E1 apart from id and principal_did. Used by XP-6."),
     ):
         write_json(os.path.join(INTEROP, "aae-envelopes", name + ".json"), {
             "name": name,
@@ -391,8 +403,8 @@ def main() -> int:
         },
         {
             "id": "xp-5a",
-            "file": "xp-5a-reattempt-unresolved.json",
-            "name": "Re-attempt, first pass - binding not yet enrolled",
+            "file": "xp-5a-enrollment-pending.json",
+            "name": "Enrollment pending - binding not yet resolved",
             "description": "Identical AAE grant (principal-A) and identical PSEA-A proof as "
                            "the second pass. The relying party has not yet enrolled the PSEA "
                            "signer's key, so the secondary binding does not resolve. Same "
@@ -423,8 +435,8 @@ def main() -> int:
         },
         {
             "id": "xp-5b",
-            "file": "xp-5b-reattempt-authorized.json",
-            "name": "Re-attempt, second pass - binding now enrolled",
+            "file": "xp-5b-enrollment-complete.json",
+            "name": "Enrollment complete - binding resolved",
             "description": "The same AAE grant and the same PSEA-A proof as xp-5a, evaluated "
                            "after the relying party has enrolled the signer key. Both sides "
                            "now resolve to the same principal.",
@@ -447,6 +459,36 @@ def main() -> int:
                          "principal as the AAE grant. The verdict moves from REFUSED to "
                          "AUTHORIZED on the binding evidence alone, a property a "
                          "single-snapshot vector cannot show.",
+        },
+        {
+            "id": "xp-6",
+            "file": "xp-6-alias-convergence.json",
+            "name": "Alias convergence - two AAE labels, one principal",
+            "description": "The AAE grant names did:web:example.com:principal-A-alias, a second "
+                           "identifier the enrolled table maps onto the same canonical principal "
+                           "as principal-A. The PSEA-A proof is unchanged. Same 32-octet action "
+                           "digest as every other vector in the set.",
+            "secured_aae": jws6,
+            "artifact": "PSEA-A",
+            "expected": {
+                "stages": {
+                    "aae_native": {"value": "ACCEPT", "verification_step": 7},
+                    "action_linkage": {"value": "EQUIVALENT"},
+                    "principal_linkage": {"value": "SAME"},
+                    "evidence_satisfaction": {"value": "SATISFIED"},
+                    "decision": {"value": "AUTHORIZED"},
+                    "admission": {"value": "NONE"},
+                    "outcome": {"value": "NONE"},
+                },
+            },
+            "rationale": "Two AAE-side labels resolve to one canonical principal, so a "
+                         "string comparison of principal_did against the PSEA enrollment label "
+                         "reports a mismatch while the resolution reports SAME. The table decides, "
+                         "and it is consulted rather than pattern-matched. This is the static "
+                         "counterpart to the temporal case in xp-5a and xp-5b: there the same "
+                         "identifier resolved differently at two times, here two identifiers "
+                         "resolve identically at one time. Both hold principal_linkage apart from "
+                         "the shape of the identifiers that feed it.",
         },
     ]
 

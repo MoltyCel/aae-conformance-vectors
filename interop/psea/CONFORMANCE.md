@@ -83,8 +83,9 @@ rather than the first one that failed.
 | xp-1-aligned-principal | ACCEPT | EQUIVALENT | SAME | SATISFIED | AUTHORIZED | NONE | NONE | §5 steps 1-7 | §2.5, §3.8 |
 | xp-2-principal-divergence | ACCEPT | EQUIVALENT | DIVERGENT | UNSATISFIED | REFUSED | NONE | NONE | §5 steps 1-7 | §2.5, §3.8 |
 | xp-3-unresolved-binding | ACCEPT | EQUIVALENT | UNRESOLVED | NOT_EVALUATED | REFUSED | NONE | NONE | §5 steps 1-7 | §2.5, §3.8 |
-| xp-5a-reattempt-unresolved | ACCEPT | EQUIVALENT | UNRESOLVED | NOT_EVALUATED | REFUSED | NONE | NONE | §5 steps 1-7 | §2.5, §3.8 |
-| xp-5b-reattempt-authorized | ACCEPT | EQUIVALENT | SAME | SATISFIED | AUTHORIZED | NONE | NONE | §5 steps 1-7 | §2.5, §3.8 |
+| xp-5a-enrollment-pending | ACCEPT | EQUIVALENT | UNRESOLVED | NOT_EVALUATED | REFUSED | NONE | NONE | §5 steps 1-7 | §2.5, §3.8 |
+| xp-5b-enrollment-complete | ACCEPT | EQUIVALENT | SAME | SATISFIED | AUTHORIZED | NONE | NONE | §5 steps 1-7 | §2.5, §3.8 |
+| xp-6-alias-convergence | ACCEPT | EQUIVALENT | SAME | SATISFIED | AUTHORIZED | NONE | NONE | §5 steps 1-7 | §2.5, §3.8 |
 
 What each tests:
 
@@ -98,13 +99,17 @@ What each tests:
   refusal it causes.
 - **xp-3** — one side's principal has no table entry. There is no resolution to
   compare.
+- **xp-6** — two AAE-side identifiers that the enrolled table maps onto one
+  canonical principal. A string comparison of `principal_did` against the PSEA
+  enrollment label reports a mismatch; the resolution reports SAME. The static
+  counterpart to the temporal case below.
 - **xp-5a / xp-5b** — the same artifacts, twice, across a change in the relying
   party's own state. Both carry the same AAE envelope, the same PSEA-A proof and
   the same 32-octet digest; only `join_who.resolution_state` differs
   (`pending_enrollment` against the default `enrolled`). The pair isolates
   enrollment as the sole variable between a refusal and an authorization.
 
-All five are `structural` in the derivation sense the native set uses: given the
+All six are `structural` in the derivation sense the native set uses: given the
 documents, the declared resolution table, and the vector's `current_time`, every
 row follows without live external state. That holds for xp-5a and xp-5b too: the
 enrollment state each is evaluated in is declared in the vector, not looked up
@@ -141,6 +146,78 @@ reason on its own row; an UNRESOLVED principal may never read SATISFIED; an
 AUTHORIZED decision requires all four upstream rows positive; a REFUSED decision
 admits and executes nothing; and nothing executes without an admission.
 
+## Boundaries of what each row establishes
+
+### Canonicalization
+
+`action_linkage: EQUIVALENT` holds for the pinned fixture, the mapping profile
+declared in the vector, and the digest construction the vector names. RFC 8785
+and jcs-n produce the same digest over these particular bytes because the action
+payload contains no null-valued and no empty members. Introduce such a member and
+the two canonicalizers diverge, and a vector built under one will fail against a
+peer using the other. Nothing here establishes a general equivalence between PSEA
+canonicalization and jcs-n.
+
+The checker performs no canonicalization at all. It decodes the two digests the
+vector declares and compares 32 octets. The digest is computed once, at build
+time, by `tools/build_interop_psea.py` from the fixture's own cleartext payload,
+and the builder aborts if its result differs from the fixture's recorded
+canonical form. A conforming implementation that recomputes the digest from the
+payload therefore tests something the reference checker does not.
+
+### Principal identity
+
+PSEA user verification proves that a human interacted with an enrolled
+authenticator. The identity of that human is a separate matter: the binding from
+an authenticator to a named person is deployment-specific and out of PSEA's
+scope, per draft-yossif-enrollment-problem-00. `principal_linkage` consumes that
+binding as a relying-party input, supplied here by the declared resolution table,
+and reports only whether two resolutions agree.
+
+The row is independent of `action_linkage` and of `evidence_satisfaction` by
+construction, which xp-6 and the xp-5 pair demonstrate from two directions. In
+xp-6 two AAE labels resolve to one canonical principal while a string comparison
+of the identifiers would report a mismatch. In xp-5a and xp-5b one identifier
+resolves differently at two times, with the artifacts unchanged. Both cases leave
+`action_linkage` at EQUIVALENT throughout.
+
+### Admission and replay
+
+An approval bound to an exact action bounds the action, not the effects that
+follow from it. Custody over those effects lives on the `admission` row, and a
+proof that verifies natively can still be refused there: its `jti` may be spent,
+or its counter may have rolled back. The counterpart profile's counter and `jti`
+commitment precedes any admission a gate grants, so a gate that admits before
+consulting it grants custody it cannot revoke.
+
+`admission` therefore stays a row of its own rather than a consequence of
+`decision`. A refusal grounded in a spent admission reports CONSUMED on that row
+with `already_consumed` as its reason, and `outcome` stays NONE because this
+decision executed nothing.
+
+### Outcome
+
+AAE acceptance describes an authorization. PSEA verification describes an
+approval. Neither is evidence that an external effect occurred. `EXECUTED`,
+`FAILED` and `INDETERMINATE` require a later record from the system of record or
+from an independent observer, and a composition layer that infers any of them
+from its own decision is reporting its intent as an outcome.
+
+## Rows this set does not reach
+
+`admission` beyond NONE and `outcome` beyond NONE are schema-valid and unreached.
+No vector and no negative control in this set produces CONSUMED, RESERVED,
+INVOKED, DISPATCH_PENDING, EXECUTED or FAILED. The reference checker decides and
+stops: `examples/composition-verify.py` emits NONE for both rows unconditionally.
+
+Those two rows are the gate and custody side of the composition, and they belong
+to the counterpart profile's scope as much as to this one. Their values are a
+proposal to be negotiated, not a tested target, and an implementer should read
+them as reserved rather than conformant.
+
+`xp-4` is deliberately unused: the case it was to carry collapses into xp-1
+(Iman, 2026-07-29).
+
 ## Crosswalk
 
 The rows are a framework-neutral spine. A coarser result is a collapse of them,
@@ -170,7 +247,7 @@ in the spine rather than overloading an existing row.
 Section 5. It performs real ES256 verification for step 2 against the enrolled
 JWKs the counterpart fixture publishes.
 
-Result on this set: **5/5**, compared row by row rather than on a single field.
+Result on this set: **6/6**, compared row by row rather than on a single field.
 The five negative controls in `negative-controls.json` reach the row values no
 vector produces — `NOT_EQUIVALENT` and `INDETERMINATE` on `action_linkage`,
 `REJECT` on `aae_native`, and `DIVERGENT` from the same inputs that otherwise
@@ -188,7 +265,7 @@ runs and the integrity pins.
 
 Per Section 7 of draft-mih-sato-agent-accountability-composition-00, a vector
 freezes only after two independent implementations recompute it. The WHAT-join
-meets that bar. The WHO-join does not yet, so all five vectors carry
+meets that bar. The WHO-join does not yet, so all six vectors carry
 `"status": "proposed"` and this set is not a conformance claim.
 
 ## Open items for the counterpart side

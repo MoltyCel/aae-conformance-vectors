@@ -1,6 +1,6 @@
 # Results — PSEA / AAE composition set
 
-Recorded run of the five composition vectors, the negative controls behind
+Recorded run of the six composition vectors, the negative controls behind
 them, and the integrity pins a reviewer needs to reproduce both.
 
 Run date: 2026-07-29. Vector set status: **proposed** (WHO-join unconfirmed).
@@ -82,10 +82,11 @@ restating them.
     OK    interop/psea/vectors/xp-1-aligned-principal.json
     OK    interop/psea/vectors/xp-2-principal-divergence.json
     OK    interop/psea/vectors/xp-3-unresolved-binding.json
-    OK    interop/psea/vectors/xp-5a-reattempt-unresolved.json
-    OK    interop/psea/vectors/xp-5b-reattempt-authorized.json
+    OK    interop/psea/vectors/xp-5a-enrollment-pending.json
+    OK    interop/psea/vectors/xp-5b-enrollment-complete.json
+    OK    interop/psea/vectors/xp-6-alias-convergence.json
 
-    5/5 composition vectors valid against schema
+    6/6 composition vectors valid against schema
 
 ## Composition run
 
@@ -101,12 +102,14 @@ differing row is reported, not just the first.
             ACCEPT | EQUIVALENT | DIVERGENT(principal_divergence) | UNSATISFIED(principal_divergence) | REFUSED(principal_divergence) | NONE | NONE
     PASS  xp-3-unresolved-binding.json
             ACCEPT | EQUIVALENT | UNRESOLVED(unresolved_binding) | NOT_EVALUATED(unresolved_binding) | REFUSED(unresolved_binding) | NONE | NONE
-    PASS  xp-5a-reattempt-unresolved.json
+    PASS  xp-5a-enrollment-pending.json
             ACCEPT | EQUIVALENT | UNRESOLVED(unresolved_binding) | NOT_EVALUATED(unresolved_binding) | REFUSED(unresolved_binding) | NONE | NONE
-    PASS  xp-5b-reattempt-authorized.json
+    PASS  xp-5b-enrollment-complete.json
+            ACCEPT | EQUIVALENT | SAME | SATISFIED | AUTHORIZED | NONE | NONE
+    PASS  xp-6-alias-convergence.json
             ACCEPT | EQUIVALENT | SAME | SATISFIED | AUTHORIZED | NONE | NONE
 
-    5/5 composition vectors passed (row-by-row)
+    6/6 composition vectors passed (row-by-row)
 
 As a table:
 
@@ -117,8 +120,9 @@ As a table:
 | XP-3 | ACCEPT @7 | EQUIVALENT | **UNRESOLVED** | NOT_EVALUATED | REFUSED | NONE | NONE |
 | XP-5a | ACCEPT @7 | EQUIVALENT | **UNRESOLVED** | NOT_EVALUATED | REFUSED | NONE | NONE |
 | XP-5b | ACCEPT @7 | EQUIVALENT | **SAME** | SATISFIED | AUTHORIZED | NONE | NONE |
+| XP-6 | ACCEPT @7 | EQUIVALENT | **SAME** | SATISFIED | AUTHORIZED | NONE | NONE |
 
-The first two rows are identical across all five vectors. Every native check
+The first two rows are identical across all six vectors. Every native check
 passes and every action digest joins; only the WHO-join separates them, which is
 the property the set exists to demonstrate.
 
@@ -132,6 +136,17 @@ XP-5a and XP-5b are the same bytes twice. Recomputed from the committed files:
 
 Nothing on the wire differs. The relying party's enrollment state is the only
 variable, and the result moves from REFUSED to AUTHORIZED on it alone.
+
+XP-6 carries a different envelope, and the difference is confined to one field:
+
+    secured_aae   sha256 b13338ef2a6ff4ac…   (XP-1/5a/5b: c2db119de3f04a77…)
+    principal_did did:web:example.com:principal-A-alias
+    action_binding sha-256:1lg8vGLBJ4MRrTEaWG2iBxiWk6mBQ_dzqPyWCuWaxgY   identical
+    PSEA-A token  sha256 785d5359c8deeaec…   identical
+    aae table maps both principal-A and principal-A-alias to …:principal:A
+
+Comparing `principal_did` against the enrollment label `principal-A` as strings
+reports a mismatch. The resolution reports SAME.
 
 XP-2 and XP-3 both read REFUSED at `decision`, and that is the point of reporting
 rows rather than a verdict: they are told apart one row earlier, at
@@ -153,8 +168,8 @@ PSEA alone. That is the gap.
 
 ## Negative controls
 
-The five vectors alone would pass even if branches of the checker were dead:
-all five reach `ACCEPT` and `EQUIVALENT` on the first two rows and differ only
+The six vectors alone would pass even if branches of the checker were dead:
+all six reach `ACCEPT` and `EQUIVALENT` on the first two rows and differ only
 from `principal_linkage` onward, so no vector ever produces `NOT_EQUIVALENT`,
 `INDETERMINATE` or `REJECT`. The controls mutate one input at a time and pin the seven
 rows that must follow. They run against in-memory copies; no committed vector is

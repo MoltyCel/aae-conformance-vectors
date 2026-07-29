@@ -1,7 +1,7 @@
 {
-  "id": "xp-5a",
-  "name": "Re-attempt, first pass - binding not yet enrolled",
-  "description": "Identical AAE grant (principal-A) and identical PSEA-A proof as the second pass. The relying party has not yet enrolled the PSEA signer's key, so the secondary binding does not resolve. Same 32-octet action digest.",
+  "id": "xp-5b",
+  "name": "Enrollment complete - binding resolved",
+  "description": "The same AAE grant and the same PSEA-A proof as xp-5a, evaluated after the relying party has enrolled the signer key. Both sides now resolve to the same principal.",
   "status": "proposed",
   "section_ref": "draft-kroehl-agentic-trust-aae-00 Section 5 steps 1-7; draft-yossif-psea-02 Sections 2.5, 3.8; draft-yossif-enrollment-problem-00",
   "verification_mode": "structural",
@@ -69,14 +69,14 @@
       "status": "proposed convention, pending cross-run confirmation",
       "canonical_space": "urn:interop:aae-psea:principal",
       "unresolved_rule": "an identifier with no entry in the table is unresolved",
-      "resolution_state": "pending_enrollment",
-      "state_note": "The relying party has not yet enrolled the key bound to principal-A, so that binding does not resolve on the secondary side. Nothing about the artifacts differs from the enrolled state - only what the relying party knows. Used by xp-5a; xp-5b is the same artifacts evaluated after enrollment.",
       "principal_resolution": {
         "aae": {
           "did:web:example.com:principal-A": "urn:interop:aae-psea:principal:A",
-          "did:web:example.com:principal-B": "urn:interop:aae-psea:principal:B"
+          "did:web:example.com:principal-B": "urn:interop:aae-psea:principal:B",
+          "did:web:example.com:principal-A-alias": "urn:interop:aae-psea:principal:A"
         },
         "secondary": {
+          "principal-A": "urn:interop:aae-psea:principal:A",
           "principal-B": "urn:interop:aae-psea:principal:B"
         }
       }
@@ -92,14 +92,13 @@
         "value": "EQUIVALENT"
       },
       "principal_linkage": {
-        "value": "UNRESOLVED",
-        "reason": "unresolved_binding"
+        "value": "SAME"
       },
       "evidence_satisfaction": {
-        "value": "NOT_EVALUATED"
+        "value": "SATISFIED"
       },
       "decision": {
-        "value": "REFUSED"
+        "value": "AUTHORIZED"
       },
       "admission": {
         "value": "NONE"
@@ -109,5 +108,5 @@
       }
     }
   },
-  "rationale": "The agent's identity is byte-identical to the second pass - same AAE envelope, same PSEA proof. What is missing is the relying party's enrollment of the signer key, so the secondary side has no resolution and principal_linkage is UNRESOLVED, one row that separates it from the DIVERGENT of xp-2. Evidence is NOT_EVALUATED because there is no second resolution to compare. Paired with xp-5b, this isolates enrollment as the only thing that changed between refusal and authorization."
+  "rationale": "Nothing on the wire changed from xp-5a - the AAE envelope and the PSEA proof are the same bytes. Only the relying party's enrollment table advanced, so the secondary binding now resolves to the same principal as the AAE grant. The verdict moves from REFUSED to AUTHORIZED on the binding evidence alone, a property a single-snapshot vector cannot show."
 }

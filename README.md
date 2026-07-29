@@ -125,14 +125,14 @@ External implementers of related specifications can contribute vectors under
 
 Current suites:
 
-- [`interop/psea/`](interop/psea/) — five composition vectors pairing an AAE
+- [`interop/psea/`](interop/psea/) — six composition vectors pairing an AAE
   with a draft-yossif-psea-02 proof over the same action, against the fixture
   published in [yuthent/psea-spec](https://github.com/yuthent/psea-spec)
   (`conformance/interop-aae/`, pinned at sha256 `f7d89f4d…d188`). They test a
   question neither profile answers alone: did the same human both mandate the
   action and approve it. Two join axes — the action digest (**confirmed**, 32
   octets recomputed identically on both sides) and the principal resolution
-  (**proposed**, awaiting confirmation from the PSEA side). All five vectors
+  (**proposed**, awaiting confirmation from the PSEA side). All six vectors
   carry `"status": "proposed"` and the set is not a conformance claim. Governed
   by [`schema/interop-composition-vector-schema.json`](schema/interop-composition-vector-schema.json),
   which extends rather than replaces the native vector schema.
@@ -143,9 +143,10 @@ Current suites:
   result is a documented collapse of them, and a profile with its own stage
   vocabulary maps onto them. A single verdict column has to render a divergence
   and a missing binding with the same token; the rows keep them apart. Two of the
-  five carry identical bytes and differ only in the relying party's enrollment
+  six carry identical bytes and differ only in the relying party's enrollment
   state, so the rows also show a refusal turning into an authorization with the
-  agent unchanged.
+  agent unchanged. A further vector has two AAE identifiers resolving to one
+  principal, where a string comparison would report a mismatch.
 
 ## Test keys
 

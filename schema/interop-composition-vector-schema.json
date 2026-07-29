@@ -447,7 +447,7 @@
           }
         },
         {
-          "description": "Nothing may be admitted or executed on a refusal.",
+          "description": "A refusal admits nothing and executes nothing ON THIS DECISION. `outcome` is therefore NONE without exception. `admission` may report a custody state that a previous decision established: an admission already spent (CONSUMED) or still held (RESERVED) is the reason some refusals happen, and a row forced to NONE would deny the very state the refusal rests on. INVOKED and DISPATCH_PENDING stay excluded, since both assert a handover made on this decision. `reason` remains open, so already_consumed belongs on the admission row where the condition was observed.",
           "if": {
             "properties": {
               "stages": {
@@ -459,7 +459,7 @@
             "properties": {
               "stages": {
                 "properties": {
-                  "admission": { "properties": { "value": { "const": "NONE" } } },
+                  "admission": { "properties": { "value": { "enum": ["NONE", "CONSUMED", "RESERVED"] } } },
                   "outcome": { "properties": { "value": { "const": "NONE" } } }
                 }
               }

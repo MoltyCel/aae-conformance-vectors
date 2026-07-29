@@ -1,12 +1,12 @@
 {
-  "id": "xp-2",
-  "name": "Principal divergence - composition refuses",
-  "description": "The AAE grant names principal-A; the PSEA proof is signed by the key enrolled to principal-B. Both artifacts verify natively and carry the same action digest, so every single-profile check passes.",
+  "id": "xp-6",
+  "name": "Alias convergence - two AAE labels, one principal",
+  "description": "The AAE grant names did:web:example.com:principal-A-alias, a second identifier the enrolled table maps onto the same canonical principal as principal-A. The PSEA-A proof is unchanged. Same 32-octet action digest as every other vector in the set.",
   "status": "proposed",
   "section_ref": "draft-kroehl-agentic-trust-aae-00 Section 5 steps 1-7; draft-yossif-psea-02 Sections 2.5, 3.8; draft-yossif-enrollment-problem-00",
   "verification_mode": "structural",
   "input": {
-    "secured_aae": "eyJhbGciOiJFZERTQSIsImN0eSI6ImFhZStqc29uIiwia2lkIjoiZGlkOndlYjpleGFtcGxlLmNvbTphZ2VudC1hI2tleS0xIn0.eyJAY29udGV4dCI6WyJodHRwczovL3d3dy53My5vcmcvbnMvY3JlZGVudGlhbHMvdjIiLCJodHRwczovL21vbHRydXN0LmNoL2NvbnRleHRzL2FhZS92MSJdLCJ0eXBlIjpbIlZlcmlmaWFibGVDcmVkZW50aWFsIiwiQWdlbnRBdXRob3JpemF0aW9uRW52ZWxvcGUiXSwiaWQiOiJ1cm46dXVpZDowMDAwMDEwMS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwYTEiLCJpc3N1ZXIiOiJkaWQ6d2ViOmV4YW1wbGUuY29tOmFnZW50LWEiLCJ2YWxpZEZyb20iOiIyMDI2LTA3LTI5VDA4OjAwOjAwWiIsImNyZWRlbnRpYWxTdWJqZWN0Ijp7ImlkIjoiZGlkOndlYjpleGFtcGxlLmNvbTphZ2VudC0wMDEiLCJhYWUiOnsibWFuZGF0ZSI6eyJhY3Rpb25zIjpbInRyYW5zZmVyIiwicGF5bWVudC5leGVjdXRlIl0sInB1cnBvc2UiOiJQU0VBL0FBRSBpbnRlcm9wIGNyb3NzLXJ1biAtIHNpbmdsZSBvdXRib3VuZCB0cmFuc2ZlciIsInNjb3BlIjoicGF5bWVudHMtdmVydGljYWwiLCJwcmluY2lwYWxfZGlkIjoiZGlkOndlYjpleGFtcGxlLmNvbTpwcmluY2lwYWwtQSIsImFjdGlvbl9iaW5kaW5nIjp7ImFsZyI6InNoYS0yNTYiLCJjYW5vbmljYWxpemF0aW9uIjoiSkNTIChSRkMgODc4NSkiLCJwYXlsb2FkX2RpZ2VzdCI6InNoYS0yNTY6MWxnOHZHTEJKNE1SclRFYVdHMmlCeGlXazZtQlFfZHpxUHlXQ3VXYXhnWSJ9fSwiY29uc3RyYWludHMiOnsibWF4X3RyYW5zYWN0aW9uX3ZhbHVlIjp7InZhbHVlIjo1MDAwMDAsImN1cnJlbmN5IjoiQ0hGIiwicmVxdWlyZWQiOnRydWV9fSwidmFsaWRpdHkiOnsibm90X2JlZm9yZSI6IjIwMjYtMDctMjlUMDg6MDA6MDBaIiwibm90X2FmdGVyIjoiMjAyNi0wNy0yOVQwOTowMDowMFoiLCJzaW5nbGVfdXNlIjpmYWxzZX19fX0.LgptbAepCHlwNR0a9nNXiPaQhBWsfnuLYYkkZHq5CEK_ubs4Dernd_a52ohZZ2krbSLmQMOIM2qiYK1UT2ztDw",
+    "secured_aae": "eyJhbGciOiJFZERTQSIsImN0eSI6ImFhZStqc29uIiwia2lkIjoiZGlkOndlYjpleGFtcGxlLmNvbTphZ2VudC1hI2tleS0xIn0.eyJAY29udGV4dCI6WyJodHRwczovL3d3dy53My5vcmcvbnMvY3JlZGVudGlhbHMvdjIiLCJodHRwczovL21vbHRydXN0LmNoL2NvbnRleHRzL2FhZS92MSJdLCJ0eXBlIjpbIlZlcmlmaWFibGVDcmVkZW50aWFsIiwiQWdlbnRBdXRob3JpemF0aW9uRW52ZWxvcGUiXSwiaWQiOiJ1cm46dXVpZDowMDAwMDEwNi0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwYzYiLCJpc3N1ZXIiOiJkaWQ6d2ViOmV4YW1wbGUuY29tOmFnZW50LWEiLCJ2YWxpZEZyb20iOiIyMDI2LTA3LTI5VDA4OjAwOjAwWiIsImNyZWRlbnRpYWxTdWJqZWN0Ijp7ImlkIjoiZGlkOndlYjpleGFtcGxlLmNvbTphZ2VudC0wMDEiLCJhYWUiOnsibWFuZGF0ZSI6eyJhY3Rpb25zIjpbInRyYW5zZmVyIiwicGF5bWVudC5leGVjdXRlIl0sInB1cnBvc2UiOiJQU0VBL0FBRSBpbnRlcm9wIGNyb3NzLXJ1biAtIHNpbmdsZSBvdXRib3VuZCB0cmFuc2ZlciIsInNjb3BlIjoicGF5bWVudHMtdmVydGljYWwiLCJwcmluY2lwYWxfZGlkIjoiZGlkOndlYjpleGFtcGxlLmNvbTpwcmluY2lwYWwtQS1hbGlhcyIsImFjdGlvbl9iaW5kaW5nIjp7ImFsZyI6InNoYS0yNTYiLCJjYW5vbmljYWxpemF0aW9uIjoiSkNTIChSRkMgODc4NSkiLCJwYXlsb2FkX2RpZ2VzdCI6InNoYS0yNTY6MWxnOHZHTEJKNE1SclRFYVdHMmlCeGlXazZtQlFfZHpxUHlXQ3VXYXhnWSJ9fSwiY29uc3RyYWludHMiOnsibWF4X3RyYW5zYWN0aW9uX3ZhbHVlIjp7InZhbHVlIjo1MDAwMDAsImN1cnJlbmN5IjoiQ0hGIiwicmVxdWlyZWQiOnRydWV9fSwidmFsaWRpdHkiOnsibm90X2JlZm9yZSI6IjIwMjYtMDctMjlUMDg6MDA6MDBaIiwibm90X2FmdGVyIjoiMjAyNi0wNy0yOVQwOTowMDowMFoiLCJzaW5nbGVfdXNlIjpmYWxzZX19fX0.4s_pP0ku1T_F_BbKsJ_P2OKfHTTfH3Cq77_0-j8yatDKo2mxGghvxPvr37HsOMPK31CeLsM-5SQkvsINWi9MBA",
     "context": {
       "current_time": "2026-07-29T08:30:00Z",
       "requested_action": "transfer",
@@ -23,10 +23,10 @@
     "secondary_artifact": {
       "profile": "draft-yossif-psea-02",
       "format": "JWS compact serialization, typ psea-proof+jwt, alg ES256",
-      "artifact_id": "PSEA-B",
-      "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6InBzZWEtcHJvb2Yrand0Iiwia2lkIjoicHNlYS1rZXktQiJ9.eyJpc3MiOiJhcy5pbnRlcm9wLmV4YW1wbGUiLCJhdWQiOiJycy5pbnRlcm9wLmV4YW1wbGUiLCJpYXQiOjE3ODUzMTIwMDAsImV4cCI6MTc4NTMxNTYwMCwianRpIjoicHNlYS1pbnRlcm9wLWFhZS0wMDIiLCJwc2VhX29wIjoicGF5bWVudC5leGVjdXRlIiwicHNlYV90aWVyIjoiaGlnaCIsInBzZWFfcGF5bG9hZF9oYXNoIjoiMWxnOHZHTEJKNE1SclRFYVdHMmlCeGlXazZtQlEvZHpxUHlXQ3VXYXhnWT0iLCJwc2VhX2NvdW50ZXIiOjEsInBzZWFfdXYiOnsidmVyaWZpZWQiOnRydWUsIm1ldGhvZCI6ImJpb21ldHJpYyJ9LCJwc2VhX3Byb29mX3ZlcnNpb24iOjF9.GIzbaJHljbZR3xbwUZ-fr6WHFOocGxwoXV9_E3nnsGxLorn6oZILv4chKiuP4CWgm5xE7KOnX_ACA8n7jGsdNg",
-      "signer_kid": "psea-key-B",
-      "enrollment_binding": "principal-B",
+      "artifact_id": "PSEA-A",
+      "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6InBzZWEtcHJvb2Yrand0Iiwia2lkIjoicHNlYS1rZXktQSJ9.eyJpc3MiOiJhcy5pbnRlcm9wLmV4YW1wbGUiLCJhdWQiOiJycy5pbnRlcm9wLmV4YW1wbGUiLCJpYXQiOjE3ODUzMTIwMDAsImV4cCI6MTc4NTMxNTYwMCwianRpIjoicHNlYS1pbnRlcm9wLWFhZS0wMDEiLCJwc2VhX29wIjoicGF5bWVudC5leGVjdXRlIiwicHNlYV90aWVyIjoiaGlnaCIsInBzZWFfcGF5bG9hZF9oYXNoIjoiMWxnOHZHTEJKNE1SclRFYVdHMmlCeGlXazZtQlEvZHpxUHlXQ3VXYXhnWT0iLCJwc2VhX2NvdW50ZXIiOjEsInBzZWFfdXYiOnsidmVyaWZpZWQiOnRydWUsIm1ldGhvZCI6ImJpb21ldHJpYyJ9LCJwc2VhX3Byb29mX3ZlcnNpb24iOjF9.QUZZYRNo_XOWd2GG64xye9sRJfO3u_FEzCRtI4ivHEX3quCerf-Nxv__o8fYiCP97ZXrA3TX3n3Yd1755Z9_jw",
+      "signer_kid": "psea-key-A",
+      "enrollment_binding": "principal-A",
       "native_verdict": "VERIFIED",
       "payload_digest": {
         "alg": "sha-256",
@@ -92,14 +92,13 @@
         "value": "EQUIVALENT"
       },
       "principal_linkage": {
-        "value": "DIVERGENT",
-        "reason": "principal_divergence"
+        "value": "SAME"
       },
       "evidence_satisfaction": {
-        "value": "UNSATISFIED"
+        "value": "SATISFIED"
       },
       "decision": {
-        "value": "REFUSED"
+        "value": "AUTHORIZED"
       },
       "admission": {
         "value": "NONE"
@@ -109,5 +108,5 @@
       }
     }
   },
-  "rationale": "No single human both mandated and approved the action. A relying party performs two independent key-to-principal resolutions - principal_did on the AAE side, kid via enrollment binding on the PSEA side - and nothing requires them to agree. A composition that ANDs 'grant valid?' with 'proof valid?' returns AUTHORIZED here, which is wrong. This is the class neither native vector set carries. The conflict is located at principal_linkage DIVERGENT, one row above the refusal it causes."
+  "rationale": "Two AAE-side labels resolve to one canonical principal, so a string comparison of principal_did against the PSEA enrollment label reports a mismatch while the resolution reports SAME. The table decides, and it is consulted rather than pattern-matched. This is the static counterpart to the temporal case in xp-5a and xp-5b: there the same identifier resolved differently at two times, here two identifiers resolve identically at one time. Both hold principal_linkage apart from the shape of the identifiers that feed it."
 }
