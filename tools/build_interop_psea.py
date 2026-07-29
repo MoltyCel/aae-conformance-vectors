@@ -285,11 +285,15 @@ def main() -> int:
             "secured_aae": jws1,
             "artifact": "PSEA-A",
             "expected": {
-                "composition_verdict": "AUTHORIZED",
-                "reason": None,
-                "aae_native": {"result": "ACCEPT", "verification_step": 7,
-                               "rejection_reason": None},
-                "secondary_native": {"result": "VERIFIED", "detail": None},
+                "stages": {
+                    "aae_native": {"value": "ACCEPT", "verification_step": 7},
+                    "action_linkage": {"value": "EQUIVALENT"},
+                    "principal_linkage": {"value": "SAME"},
+                    "evidence_satisfaction": {"value": "SATISFIED"},
+                    "decision": {"value": "AUTHORIZED"},
+                    "admission": {"value": "NONE"},
+                    "outcome": {"value": "NONE"},
+                },
             },
             "rationale": "One human both mandated and approved. Both native verifications "
                          "pass, the WHAT-join holds on 32 identical octets, and both "
@@ -307,23 +311,30 @@ def main() -> int:
             "secured_aae": jws1,
             "artifact": "PSEA-B",
             "expected": {
-                "composition_verdict": "REFUSE",
-                "reason": "principal_divergence",
-                "aae_native": {"result": "ACCEPT", "verification_step": 7,
-                               "rejection_reason": None},
-                "secondary_native": {"result": "VERIFIED", "detail": None},
+                "stages": {
+                    "aae_native": {"value": "ACCEPT", "verification_step": 7},
+                    "action_linkage": {"value": "EQUIVALENT"},
+                    "principal_linkage": {"value": "DIVERGENT",
+                                          "reason": "principal_divergence"},
+                    "evidence_satisfaction": {"value": "UNSATISFIED"},
+                    "decision": {"value": "REFUSED"},
+                    "admission": {"value": "NONE"},
+                    "outcome": {"value": "NONE"},
+                },
             },
             "rationale": "No single human both mandated and approved the action. A relying "
                          "party performs two independent key-to-principal resolutions - "
                          "principal_did on the AAE side, kid via enrollment binding on the "
                          "PSEA side - and nothing requires them to agree. A composition that "
                          "ANDs 'grant valid?' with 'proof valid?' returns AUTHORIZED here, "
-                         "which is wrong. This is the class neither native vector set carries.",
+                         "which is wrong. This is the class neither native vector set "
+                         "carries. The conflict is located at principal_linkage DIVERGENT, "
+                         "one row above the refusal it causes.",
         },
         {
             "id": "xp-3",
             "file": "xp-3-unresolved-binding.json",
-            "name": "Unresolved binding - composition is indeterminate",
+            "name": "Unresolved binding - refused on a missing input",
             "description": "The AAE grant names a principal with no entry in the resolution "
                            "table; the PSEA proof is signed by the key enrolled to "
                            "principal-A. Both artifacts verify natively and carry the same "
@@ -331,20 +342,27 @@ def main() -> int:
             "secured_aae": jws2,
             "artifact": "PSEA-A",
             "expected": {
-                "composition_verdict": "INDETERMINATE",
-                "reason": "unresolved_binding",
-                "aae_native": {"result": "ACCEPT", "verification_step": 7,
-                               "rejection_reason": None},
-                "secondary_native": {"result": "VERIFIED", "detail": None},
+                "stages": {
+                    "aae_native": {"value": "ACCEPT", "verification_step": 7},
+                    "action_linkage": {"value": "EQUIVALENT"},
+                    "principal_linkage": {"value": "UNRESOLVED",
+                                          "reason": "unresolved_binding"},
+                    "evidence_satisfaction": {"value": "NOT_EVALUATED"},
+                    "decision": {"value": "REFUSED"},
+                    "admission": {"value": "NONE"},
+                    "outcome": {"value": "NONE"},
+                },
             },
             "rationale": "The enrollment binding is not established on one side, so the "
                          "composition has no resolution to compare. Absence of a resolution "
-                         "is not divergence of resolutions: XP-3 is INDETERMINATE, not "
-                         "REFUSE. Collapsing the two loses the difference between 'these "
-                         "artifacts name different humans' - a conflict that was observed - "
-                         "and 'we cannot tell whose mandate this is' - a missing input. An "
-                         "implementation returning REFUSE for both reports a conflict it "
-                         "never saw.",
+                         "is not divergence of resolutions. XP-3 and XP-2 both end REFUSED "
+                         "at the decision row, and that is exactly why the decision row is "
+                         "not the whole result: they are told apart one row earlier, at "
+                         "principal_linkage UNRESOLVED against DIVERGENT, and again at "
+                         "evidence_satisfaction NOT_EVALUATED against UNSATISFIED. A "
+                         "one-column verdict renders 'we cannot tell whose mandate this is' "
+                         "and 'these artifacts name different humans' identically, and a "
+                         "reviewer cannot recover the difference from the result.",
         },
     ]
 

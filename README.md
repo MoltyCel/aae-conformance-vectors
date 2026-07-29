@@ -137,6 +137,13 @@ Current suites:
   by [`schema/interop-composition-vector-schema.json`](schema/interop-composition-vector-schema.json),
   which extends rather than replaces the native vector schema.
 
+  Results are **seven staged rows**, not one composition verdict — `aae_native`,
+  `action_linkage`, `principal_linkage`, `evidence_satisfaction`, `decision`,
+  `admission`, `outcome`. The rows are framework-neutral: a coarser three-way
+  result is a documented collapse of them, and a profile with its own stage
+  vocabulary maps onto them. A single verdict column has to render a divergence
+  and a missing binding with the same token; the rows keep them apart.
+
 ## Test keys
 
 The keypairs under `testkeys/` are committed so that the signed vectors are

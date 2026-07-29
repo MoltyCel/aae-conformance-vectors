@@ -213,86 +213,263 @@
     },
     "expected": {
       "type": "object",
-      "required": ["composition_verdict"],
+      "description": "The staged result. There is no single composition verdict: a composition failure is located at the stage that produced it, so two failures that a one-column verdict would render identically stay distinguishable here. Every row is reported; a row is never omitted because an earlier row failed.",
+      "required": ["stages"],
       "additionalProperties": false,
       "properties": {
-        "composition_verdict": {
-          "type": "string",
-          "enum": ["AUTHORIZED", "REFUSE", "INDETERMINATE"],
-          "description": "AUTHORIZED: both natives pass, both digests join on 32 identical octets, and both principals resolve to the same canonical principal. REFUSE: a conflict was observed. INDETERMINATE: an input needed to decide is missing. REFUSE and INDETERMINATE never collapse into each other."
-        },
-        "reason": {
-          "type": ["string", "null"],
-          "enum": [
-            "principal_divergence",
-            "unresolved_binding",
-            "join_mismatch",
-            "aae_native_reject",
-            "secondary_native_reject",
-            null
+        "stages": {
+          "type": "object",
+          "description": "Seven ordered stages, framework-neutral. Each is a row carrying a `value` from its own closed enum and an optional `reason`. The enums do not overlap across stages: INDETERMINATE on `action_linkage` (the linkage could not be established) and INDETERMINATE on `outcome` (what happened could not be established) are different facts about different stages and cannot be collapsed into one another, nor into UNRESOLVED on `principal_linkage`.",
+          "required": [
+            "aae_native",
+            "action_linkage",
+            "principal_linkage",
+            "evidence_satisfaction",
+            "decision",
+            "admission",
+            "outcome"
           ],
-          "description": "principal_divergence: both principals resolved and differ (REFUSE). unresolved_binding: at least one principal has no entry in the resolution table (INDETERMINATE). join_mismatch: the two action digests differ on the octets (INDETERMINATE). aae_native_reject / secondary_native_reject: a native verification failed and its rejection is propagated, so the composition layer never ran (REFUSE). Required whenever composition_verdict is not AUTHORIZED."
-        },
-        "aae_native": {
-          "type": "object",
-          "description": "What the unmodified AAE Section 5 algorithm returns for input.secured_aae.",
-          "required": ["result"],
           "additionalProperties": false,
           "properties": {
-            "result": { "type": "string", "enum": ["ACCEPT", "REJECT"] },
-            "verification_step": { "type": "integer", "minimum": 1, "maximum": 9 },
-            "rejection_reason": { "type": ["string", "null"] }
-          }
-        },
-        "secondary_native": {
-          "type": "object",
-          "description": "What the counterpart profile's own verification returns for input.secondary_artifact.",
-          "required": ["result"],
-          "additionalProperties": false,
-          "properties": {
-            "result": { "type": "string", "enum": ["VERIFIED", "FAILED"] },
-            "detail": { "type": ["string", "null"] }
+            "aae_native": {
+              "allOf": [{ "$ref": "#/$defs/stage_row" }],
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "enum": ["ACCEPT", "REJECT"],
+                  "description": "What the unmodified AAE Section 5 algorithm returns for input.secured_aae."
+                },
+                "reason": { "type": ["string", "null"] },
+                "verification_step": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9,
+                  "description": "The Section 5 step at which the algorithm stopped. Only meaningful on this row."
+                }
+              },
+              "unevaluatedProperties": false
+            },
+            "action_linkage": {
+              "allOf": [{ "$ref": "#/$defs/stage_row" }],
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "enum": ["EQUIVALENT", "NOT_EQUIVALENT", "INDETERMINATE"],
+                  "description": "Whether both artifacts demonstrably commit to the same action. EQUIVALENT: the two digests decode to 32 identical octets. NOT_EQUIVALENT: they decode to 32 octets that differ. INDETERMINATE: the linkage could not be established at all - a digest was undecodable, or an artifact whose commitment would be needed did not authenticate. Not the same fact as UNRESOLVED on principal_linkage, and not the same fact as INDETERMINATE on outcome."
+                },
+                "reason": { "type": ["string", "null"] }
+              },
+              "unevaluatedProperties": false
+            },
+            "principal_linkage": {
+              "allOf": [{ "$ref": "#/$defs/stage_row" }],
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "enum": ["SAME", "DIVERGENT", "UNRESOLVED"],
+                  "description": "Whether both sides name the same principal, resolved through the vector's declared join_who table. SAME: both resolve, to the same canonical principal. DIVERGENT: both resolve, to different canonical principals - a conflict that was observed. UNRESOLVED: at least one identifier has no entry, or came from an artifact that did not authenticate - a missing input, not a conflict. PROPOSED: the value on this row depends on the join_who table, which is a proposed convention pending confirmation from the counterpart profile."
+                },
+                "reason": { "type": ["string", "null"] }
+              },
+              "unevaluatedProperties": false
+            },
+            "evidence_satisfaction": {
+              "allOf": [{ "$ref": "#/$defs/stage_row" }],
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "enum": ["SATISFIED", "UNSATISFIED", "NOT_EVALUATED"],
+                  "description": "Whether the approval evidence satisfies the requirement for this action by this principal. SATISFIED: the evidence authenticates, covers this action, and comes from the mandating principal. UNSATISFIED: the evidence authenticates but does not satisfy the requirement, or does not authenticate at all. NOT_EVALUATED: satisfaction was not reached because a prerequisite stage did not establish what to evaluate against."
+                },
+                "reason": { "type": ["string", "null"] }
+              },
+              "unevaluatedProperties": false
+            },
+            "decision": {
+              "allOf": [{ "$ref": "#/$defs/stage_row" }],
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "enum": ["AUTHORIZED", "REFUSED"],
+                  "description": "The authorization decision, binary by construction. Uncertainty is never expressed here - it is expressed on the stage that carries it. A refusal for a divergence and a refusal for a missing input are both REFUSED at this row and are told apart by principal_linkage and evidence_satisfaction."
+                },
+                "reason": { "type": ["string", "null"] }
+              },
+              "unevaluatedProperties": false
+            },
+            "admission": {
+              "allOf": [{ "$ref": "#/$defs/stage_row" }],
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "enum": ["NONE", "RESERVED", "CONSUMED", "DISPATCH_PENDING", "INVOKED"],
+                  "description": "What the relying party did with a single-use or otherwise consumable admission on the strength of the decision. NONE: nothing was admitted. RESERVED: an admission was held but not spent. CONSUMED: an admission was spent. DISPATCH_PENDING: dispatch was initiated and its acceptance is not yet known. INVOKED: the action was handed to the executing system."
+                },
+                "reason": { "type": ["string", "null"] }
+              },
+              "unevaluatedProperties": false
+            },
+            "outcome": {
+              "allOf": [{ "$ref": "#/$defs/stage_row" }],
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "enum": ["EXECUTED", "FAILED", "INDETERMINATE", "NONE"],
+                  "description": "What the executing system reports back. EXECUTED: the action completed. FAILED: it did not. INDETERMINATE: what happened could not be established - the distinct case where an admission was spent and the result is unknown. NONE: nothing was attempted. INDETERMINATE here is a fact about execution, never about linkage."
+                },
+                "reason": { "type": ["string", "null"] }
+              },
+              "unevaluatedProperties": false
+            }
           }
         }
       },
       "allOf": [
         {
+          "description": "A refusal must be locatable: at least one row carries a reason.",
           "if": {
-            "properties": { "composition_verdict": { "const": "AUTHORIZED" } }
-          },
-          "then": {
-            "properties": { "reason": { "type": "null" } }
-          },
-          "else": {
-            "required": ["reason"],
-            "properties": { "reason": { "type": "string" } }
-          }
-        },
-        {
-          "if": {
-            "properties": { "composition_verdict": { "const": "REFUSE" } },
-            "required": ["composition_verdict"]
+            "properties": {
+              "stages": {
+                "properties": { "decision": { "properties": { "value": { "const": "REFUSED" } } } }
+              }
+            }
           },
           "then": {
             "properties": {
-              "reason": {
-                "enum": [
-                  "principal_divergence",
-                  "aae_native_reject",
-                  "secondary_native_reject"
+              "stages": {
+                "anyOf": [
+                  { "properties": { "aae_native": { "required": ["reason"], "properties": { "reason": { "type": "string" } } } } },
+                  { "properties": { "action_linkage": { "required": ["reason"], "properties": { "reason": { "type": "string" } } } } },
+                  { "properties": { "principal_linkage": { "required": ["reason"], "properties": { "reason": { "type": "string" } } } } },
+                  { "properties": { "evidence_satisfaction": { "required": ["reason"], "properties": { "reason": { "type": "string" } } } } },
+                  { "properties": { "decision": { "required": ["reason"], "properties": { "reason": { "type": "string" } } } } },
+                  { "properties": { "admission": { "required": ["reason"], "properties": { "reason": { "type": "string" } } } } },
+                  { "properties": { "outcome": { "required": ["reason"], "properties": { "reason": { "type": "string" } } } } }
                 ]
               }
             }
           }
         },
         {
+          "description": "AUTHORIZED requires every upstream stage to have established its fact positively.",
           "if": {
-            "properties": { "composition_verdict": { "const": "INDETERMINATE" } },
-            "required": ["composition_verdict"]
+            "properties": {
+              "stages": {
+                "properties": { "decision": { "properties": { "value": { "const": "AUTHORIZED" } } } }
+              }
+            }
           },
           "then": {
             "properties": {
-              "reason": { "enum": ["unresolved_binding", "join_mismatch"] }
+              "stages": {
+                "properties": {
+                  "aae_native": { "properties": { "value": { "const": "ACCEPT" } } },
+                  "action_linkage": { "properties": { "value": { "const": "EQUIVALENT" } } },
+                  "principal_linkage": { "properties": { "value": { "const": "SAME" } } },
+                  "evidence_satisfaction": { "properties": { "value": { "const": "SATISFIED" } } }
+                }
+              }
+            }
+          }
+        },
+        {
+          "description": "A divergent principal is an observed conflict: the evidence is unsatisfied and the decision refuses. The reason belongs on the row that observed it.",
+          "if": {
+            "properties": {
+              "stages": {
+                "properties": { "principal_linkage": { "properties": { "value": { "const": "DIVERGENT" } } } }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "stages": {
+                "properties": {
+                  "principal_linkage": { "required": ["reason"], "properties": { "reason": { "type": "string" } } },
+                  "evidence_satisfaction": { "properties": { "value": { "const": "UNSATISFIED" } } },
+                  "decision": { "properties": { "value": { "const": "REFUSED" } } }
+                }
+              }
+            }
+          }
+        },
+        {
+          "description": "An unresolved principal is a missing input, not a conflict. Satisfaction may not be SATISFIED - either NOT_EVALUATED, when nothing was there to evaluate against, or UNSATISFIED, when the evidence itself failed to authenticate and the principal is unresolved for that same reason - and the decision refuses. A divergence and a missing binding cannot collapse into one another because DIVERGENT and UNRESOLVED are distinct values on this same row; the row is what a reader consults, not the decision column.",
+          "if": {
+            "properties": {
+              "stages": {
+                "properties": { "principal_linkage": { "properties": { "value": { "const": "UNRESOLVED" } } } }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "stages": {
+                "properties": {
+                  "principal_linkage": { "required": ["reason"], "properties": { "reason": { "type": "string" } } },
+                  "evidence_satisfaction": { "properties": { "value": { "enum": ["NOT_EVALUATED", "UNSATISFIED"] } } },
+                  "decision": { "properties": { "value": { "const": "REFUSED" } } }
+                }
+              }
+            }
+          }
+        },
+        {
+          "description": "A native AAE rejection propagates: nothing downstream may claim to have been established.",
+          "if": {
+            "properties": {
+              "stages": {
+                "properties": { "aae_native": { "properties": { "value": { "const": "REJECT" } } } }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "stages": {
+                "properties": {
+                  "action_linkage": { "properties": { "value": { "const": "INDETERMINATE" } } },
+                  "principal_linkage": { "properties": { "value": { "const": "UNRESOLVED" } } },
+                  "evidence_satisfaction": { "properties": { "value": { "const": "NOT_EVALUATED" } } },
+                  "decision": { "properties": { "value": { "const": "REFUSED" } } }
+                }
+              }
+            }
+          }
+        },
+        {
+          "description": "Nothing may be admitted or executed on a refusal.",
+          "if": {
+            "properties": {
+              "stages": {
+                "properties": { "decision": { "properties": { "value": { "const": "REFUSED" } } } }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "stages": {
+                "properties": {
+                  "admission": { "properties": { "value": { "const": "NONE" } } },
+                  "outcome": { "properties": { "value": { "const": "NONE" } } }
+                }
+              }
+            }
+          }
+        },
+        {
+          "description": "Nothing may be reported as executed without an admission.",
+          "if": {
+            "properties": {
+              "stages": {
+                "properties": { "admission": { "properties": { "value": { "const": "NONE" } } } }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "stages": {
+                "properties": { "outcome": { "properties": { "value": { "const": "NONE" } } } }
+              }
             }
           }
         }
@@ -301,6 +478,18 @@
     "rationale": { "type": "string", "minLength": 1 }
   },
   "$defs": {
+    "stage_row": {
+      "type": "object",
+      "description": "One stage of the staged result. `value` comes from that stage's own closed enum, declared on the stage itself. `reason` is optional and belongs on the row that produced the condition it names - for example already_consumed on admission, or principal_divergence on principal_linkage - so a reader can locate a failure rather than infer it.",
+      "required": ["value"],
+      "properties": {
+        "value": { "type": "string", "minLength": 1 },
+        "reason": {
+          "type": ["string", "null"],
+          "description": "Short machine-readable token, snake_case. Not drawn from a closed list: the set of conditions a profile can report is open, while the stage values are not."
+        }
+      }
+    },
     "encoded_digest": {
       "type": "object",
       "description": "A digest carried in a declared wire encoding. The encoding is data, not a guess: a consumer decodes it to raw octets and compares octets. base64url-nopad is the AAE-native form (matching the sha-256:<base64url> shape used elsewhere in the draft), base64-pad is the PSEA wire form, hex is the third form seen in practice.",

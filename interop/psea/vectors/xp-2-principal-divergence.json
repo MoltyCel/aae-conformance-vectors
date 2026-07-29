@@ -82,17 +82,31 @@
     }
   },
   "expected": {
-    "composition_verdict": "REFUSE",
-    "reason": "principal_divergence",
-    "aae_native": {
-      "result": "ACCEPT",
-      "verification_step": 7,
-      "rejection_reason": null
-    },
-    "secondary_native": {
-      "result": "VERIFIED",
-      "detail": null
+    "stages": {
+      "aae_native": {
+        "value": "ACCEPT",
+        "verification_step": 7
+      },
+      "action_linkage": {
+        "value": "EQUIVALENT"
+      },
+      "principal_linkage": {
+        "value": "DIVERGENT",
+        "reason": "principal_divergence"
+      },
+      "evidence_satisfaction": {
+        "value": "UNSATISFIED"
+      },
+      "decision": {
+        "value": "REFUSED"
+      },
+      "admission": {
+        "value": "NONE"
+      },
+      "outcome": {
+        "value": "NONE"
+      }
     }
   },
-  "rationale": "No single human both mandated and approved the action. A relying party performs two independent key-to-principal resolutions - principal_did on the AAE side, kid via enrollment binding on the PSEA side - and nothing requires them to agree. A composition that ANDs 'grant valid?' with 'proof valid?' returns AUTHORIZED here, which is wrong. This is the class neither native vector set carries."
+  "rationale": "No single human both mandated and approved the action. A relying party performs two independent key-to-principal resolutions - principal_did on the AAE side, kid via enrollment binding on the PSEA side - and nothing requires them to agree. A composition that ANDs 'grant valid?' with 'proof valid?' returns AUTHORIZED here, which is wrong. This is the class neither native vector set carries. The conflict is located at principal_linkage DIVERGENT, one row above the refusal it causes."
 }

@@ -18,70 +18,131 @@ only exists once two artifacts are on the table.
 This set tests that third question. It does not restate either profile's native
 verdict; it consumes them.
 
-## The composition algorithm
+## The staged result
 
-Four checks in order, fail-closed at each.
+A composition result is seven rows, not one verdict. Each carries a value from
+its own closed enum and an optional `reason` on the row that produced the
+condition.
+
+| Row | Values | What it establishes |
+|---|---|---|
+| `aae_native` | ACCEPT · REJECT | What the unmodified Section 5 algorithm returns for the AAE. |
+| `action_linkage` | EQUIVALENT · NOT_EQUIVALENT · INDETERMINATE | Whether both artifacts demonstrably commit to the same action. |
+| `principal_linkage` | SAME · DIVERGENT · UNRESOLVED | Whether both sides name the same principal, through the declared table. |
+| `evidence_satisfaction` | SATISFIED · UNSATISFIED · NOT_EVALUATED | Whether the approval evidence satisfies the requirement for this action by this principal. |
+| `decision` | AUTHORIZED · REFUSED | The authorization decision, binary by construction. |
+| `admission` | NONE · RESERVED · CONSUMED · DISPATCH_PENDING · INVOKED | What the relying party did with a consumable admission. |
+| `outcome` | EXECUTED · FAILED · INDETERMINATE · NONE | What the executing system reported back. |
+
+Uncertainty is never expressed at `decision`. It is expressed on the row that
+carries it, and the enums do not share a token across rows that would let two
+unlike uncertainties collapse:
+
+- `action_linkage: INDETERMINATE` — the linkage could not be established.
+- `outcome: INDETERMINATE` — what happened could not be established, the case
+  where an admission was spent and the result is unknown.
+- `principal_linkage: UNRESOLVED` — an identifier had no entry.
+
+Three facts about three stages. A result format with one uncertainty token has
+to pick one of them and lose the other two.
+
+## Evaluation order
+
+Four checks, fail-closed at each. Failing a check does not suppress the rows
+below it: every row is reported, and a row a failure prevented from being
+established says so with its own not-established value rather than being omitted
+or guessed.
 
 | Step | Check | On failure |
 |---|---|---|
-| 1 | AAE native, Section 5 steps 1-9 | propagate: REFUSE / `aae_native_reject` |
-| 2 | Secondary artifact native (ES256 against the enrolled JWK, inside `iat`/`exp`, committing to the recorded digest) | propagate: REFUSE / `secondary_native_reject` |
-| 3 | WHAT-join: decode both digests, compare 32 octets | INDETERMINATE / `join_mismatch` |
+| 1 | AAE native, Section 5 steps 1-9 | `aae_native REJECT` → `action_linkage INDETERMINATE`, `principal_linkage UNRESOLVED`, `evidence_satisfaction NOT_EVALUATED`, `decision REFUSED` / `aae_native_reject` |
+| 2 | Secondary artifact native (ES256 against the enrolled JWK, inside `iat`/`exp`, committing to the recorded digest) | `action_linkage INDETERMINATE`, `principal_linkage UNRESOLVED`, `evidence_satisfaction UNSATISFIED`, `decision REFUSED` / `secondary_native_reject` |
+| 3 | WHAT-join: decode both digests, compare 32 octets | equal → `EQUIVALENT`; different → `NOT_EQUIVALENT` / `join_mismatch`; undecodable → `INDETERMINATE` |
 | 4 | WHO-join: resolve both identifiers through the declared table | see below |
 
-Step 4 has three outcomes:
+Step 4:
 
-| Resolution | Verdict | Reason |
-|---|---|---|
-| at least one identifier has no table entry | INDETERMINATE | `unresolved_binding` |
-| both resolve, same canonical principal | AUTHORIZED | — |
-| both resolve, different canonical principals | REFUSE | `principal_divergence` |
+| Resolution | `principal_linkage` | `evidence_satisfaction` | Reason |
+|---|---|---|---|
+| both resolve, same canonical principal | SAME | SATISFIED (if the action linkage holds) | — |
+| both resolve, different canonical principals | DIVERGENT | UNSATISFIED | `principal_divergence` |
+| at least one has no table entry | UNRESOLVED | NOT_EVALUATED | `unresolved_binding` |
 
-Steps 1 and 2 run before either join. A composition verdict is only meaningful
-over two artifacts that are individually valid; if one is not, the composition
-layer never ran and its rejection is what gets reported.
+`decision` is AUTHORIZED only when `aae_native` ACCEPT, `action_linkage`
+EQUIVALENT, `principal_linkage` SAME, and `evidence_satisfaction` SATISFIED all
+hold. Otherwise REFUSED.
+
+Step 4 is computed independently of step 3. The principal identifiers do not
+depend on which action the artifacts commit to, and a reader is owed both facts
+rather than the first one that failed.
 
 ## Vector to section mapping
 
-| Vector | Verdict | Reason | AAE sections | PSEA sections | What it tests |
-|---|---|---|---|---|---|
-| xp-1-aligned-principal | AUTHORIZED | — | §5 steps 1-7 | §2.5, §3.8 | Both natives pass, digests join on 32 identical octets, both principals resolve to the same canonical principal. The only case where every gate is satisfied. |
-| xp-2-principal-divergence | REFUSE | `principal_divergence` | §5 steps 1-7 | §2.5, §3.8 | Both natives pass and both artifacts carry the same action digest, yet the two independent key-to-principal resolutions name different humans. A composition that ANDs the two native verdicts returns AUTHORIZED here and is wrong. |
-| xp-3-unresolved-binding | INDETERMINATE | `unresolved_binding` | §5 steps 1-7 | §2.5, §3.8 | One side's principal has no entry in the resolution table. There is no resolution to compare, so the composition cannot decide. |
+| Vector | `aae_native` | `action_linkage` | `principal_linkage` | `evidence_satisfaction` | `decision` | `admission` | `outcome` | AAE | PSEA |
+|---|---|---|---|---|---|---|---|---|---|
+| xp-1-aligned-principal | ACCEPT | EQUIVALENT | SAME | SATISFIED | AUTHORIZED | NONE | NONE | §5 steps 1-7 | §2.5, §3.8 |
+| xp-2-principal-divergence | ACCEPT | EQUIVALENT | DIVERGENT | UNSATISFIED | REFUSED | NONE | NONE | §5 steps 1-7 | §2.5, §3.8 |
+| xp-3-unresolved-binding | ACCEPT | EQUIVALENT | UNRESOLVED | NOT_EVALUATED | REFUSED | NONE | NONE | §5 steps 1-7 | §2.5, §3.8 |
+
+What each tests:
+
+- **xp-1** — both natives pass, the digests join on 32 identical octets, both
+  principals resolve to the same canonical principal. The only case where every
+  upstream row establishes its fact positively.
+- **xp-2** — both natives pass and both artifacts carry the same action digest,
+  yet the two independent key-to-principal resolutions name different humans. A
+  composition that ANDs the two native verdicts returns AUTHORIZED here and is
+  wrong. The conflict is located at `principal_linkage`, one row above the
+  refusal it causes.
+- **xp-3** — one side's principal has no table entry. There is no resolution to
+  compare.
 
 All three are `structural` in the derivation sense the native set uses: given the
-documents, the declared resolution table, and the vector's `current_time`, the
-verdict follows without live external state. That is orthogonal to enforcement
+documents, the declared resolution table, and the vector's `current_time`, every
+row follows without live external state. That is orthogonal to enforcement
 posture — a composition layer may run these in advisory mode and only log.
 
-## Why XP-2 and XP-3 must stay distinguishable
+## Why the rows, and not a verdict
 
-XP-2 reports a conflict that was observed: two resolutions succeeded and
-disagreed. XP-3 reports an input that was missing: one resolution did not
-succeed at all.
+xp-2 and xp-3 both read REFUSED at `decision`. That is not a loss of
+information, because `decision` is not the result — the seven rows are. They
+separate at `principal_linkage` (DIVERGENT against UNRESOLVED) and again at
+`evidence_satisfaction` (UNSATISFIED against NOT_EVALUATED).
 
-An implementation that returns REFUSE for both is not more conservative in any
-useful sense. It claims to have seen a conflict it never saw, and a reviewer
-reading the result cannot tell which of the two happened. The schema enforces
-the split: `principal_divergence` is only valid under REFUSE, `unresolved_binding`
-only under INDETERMINATE, and the two enums do not overlap.
+xp-2 reports a conflict that was observed: two resolutions succeeded and
+disagreed. xp-3 reports an input that was missing: one resolution did not succeed
+at all. Under a single verdict column those two either share a token — and a
+reviewer cannot tell which happened — or they are given different tokens and the
+column starts encoding stage information without saying which stage. The rows say
+which stage.
 
-## What a conforming implementation must reproduce
+The schema enforces the split rather than leaving it to convention: a DIVERGENT
+principal forces UNSATISFIED evidence and a REFUSED decision and requires a
+reason on its own row; an UNRESOLVED principal may never read SATISFIED; an
+AUTHORIZED decision requires all four upstream rows positive; a REFUSED decision
+admits and executes nothing; and nothing executes without an admission.
 
-1. All three composition verdicts, with the matching `reason`.
-2. The WHAT-join by **octet** comparison. The two digests in every vector are
-   carried in different encodings — base64url without padding on the AAE side,
-   padded standard base64 on the PSEA side. An implementation comparing encoded
-   strings fails all three vectors on identical data.
-3. The integers-only property of the action payload. An implementation that
-   accepts a float in the payload, or that reserializes the payload through a
-   float-capable path before hashing, will not reproduce the join key.
-4. The unit convention: `amount_minor` and `max_transaction_value.value` are
-   both integer minor units. The rename to `action_context.amount` carries the
-   value unchanged.
-5. The resolution table as **data**. An implementation that infers a principal
-   from the lexical shape of a DID or a `kid` passes XP-1 by accident and gives
-   the wrong answer on XP-3.
+## Crosswalk
+
+The rows are a framework-neutral spine. A coarser result is a collapse of them,
+not a different model:
+
+    AUTHORIZED     <- decision AUTHORIZED
+    REFUSE         <- decision REFUSED and principal_linkage DIVERGENT
+    INDETERMINATE  <- decision REFUSED and principal_linkage UNRESOLVED
+                      or action_linkage INDETERMINATE
+
+Applied to this set that reproduces the counterpart fixture's three-way
+`expected_composition` labels exactly — XP-1 AUTHORIZED, XP-2 REFUSE, XP-3
+INDETERMINATE. The collapse runs one way: the rows determine the label, the label
+does not determine the rows.
+
+Profiles with their own stage vocabulary (EMILIA's CAID / AEC / AEB, PSEA and
+WEXP stages) are expected to map onto the same rows. Those mappings have not been
+supplied by their authors and this set does not assert one on their behalf. The
+rule for mapping is: name the stage in your profile that establishes the same
+fact, and if no row carries a fact your profile distinguishes, raise it as a gap
+in the spine rather than overloading an existing row.
 
 ## Reference implementation
 
@@ -90,8 +151,11 @@ only under INDETERMINATE, and the two enums do not overlap.
 Section 5. It performs real ES256 verification for step 2 against the enrolled
 JWKs the counterpart fixture publishes.
 
-Result on this set: **3/3**. See [RESULTS.md](RESULTS.md) for the run, the
-negative controls, and the integrity pins.
+Result on this set: **3/3**, compared row by row rather than on a single field.
+The five negative controls in `negative-controls.json` reach the row values the
+three vectors do not — `NOT_EQUIVALENT`, `INDETERMINATE`, `REJECT`, and
+`DIVERGENT` from the same inputs that otherwise yield `UNRESOLVED` — and pass
+5/5. See [RESULTS.md](RESULTS.md) for both runs and the integrity pins.
 
 ## Status of the two axes
 

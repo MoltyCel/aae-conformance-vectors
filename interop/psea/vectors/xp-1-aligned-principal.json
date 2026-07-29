@@ -82,16 +82,29 @@
     }
   },
   "expected": {
-    "composition_verdict": "AUTHORIZED",
-    "reason": null,
-    "aae_native": {
-      "result": "ACCEPT",
-      "verification_step": 7,
-      "rejection_reason": null
-    },
-    "secondary_native": {
-      "result": "VERIFIED",
-      "detail": null
+    "stages": {
+      "aae_native": {
+        "value": "ACCEPT",
+        "verification_step": 7
+      },
+      "action_linkage": {
+        "value": "EQUIVALENT"
+      },
+      "principal_linkage": {
+        "value": "SAME"
+      },
+      "evidence_satisfaction": {
+        "value": "SATISFIED"
+      },
+      "decision": {
+        "value": "AUTHORIZED"
+      },
+      "admission": {
+        "value": "NONE"
+      },
+      "outcome": {
+        "value": "NONE"
+      }
     }
   },
   "rationale": "One human both mandated and approved. Both native verifications pass, the WHAT-join holds on 32 identical octets, and both principals resolve to urn:interop:aae-psea:principal:A. This is the only case in the set where every gate is satisfied."

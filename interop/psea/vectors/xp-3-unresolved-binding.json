@@ -1,6 +1,6 @@
 {
   "id": "xp-3",
-  "name": "Unresolved binding - composition is indeterminate",
+  "name": "Unresolved binding - refused on a missing input",
   "description": "The AAE grant names a principal with no entry in the resolution table; the PSEA proof is signed by the key enrolled to principal-A. Both artifacts verify natively and carry the same action digest.",
   "status": "proposed",
   "section_ref": "draft-kroehl-agentic-trust-aae-00 Section 5 steps 1-7; draft-yossif-psea-02 Sections 2.5, 3.8; draft-yossif-enrollment-problem-00",
@@ -82,17 +82,31 @@
     }
   },
   "expected": {
-    "composition_verdict": "INDETERMINATE",
-    "reason": "unresolved_binding",
-    "aae_native": {
-      "result": "ACCEPT",
-      "verification_step": 7,
-      "rejection_reason": null
-    },
-    "secondary_native": {
-      "result": "VERIFIED",
-      "detail": null
+    "stages": {
+      "aae_native": {
+        "value": "ACCEPT",
+        "verification_step": 7
+      },
+      "action_linkage": {
+        "value": "EQUIVALENT"
+      },
+      "principal_linkage": {
+        "value": "UNRESOLVED",
+        "reason": "unresolved_binding"
+      },
+      "evidence_satisfaction": {
+        "value": "NOT_EVALUATED"
+      },
+      "decision": {
+        "value": "REFUSED"
+      },
+      "admission": {
+        "value": "NONE"
+      },
+      "outcome": {
+        "value": "NONE"
+      }
     }
   },
-  "rationale": "The enrollment binding is not established on one side, so the composition has no resolution to compare. Absence of a resolution is not divergence of resolutions: XP-3 is INDETERMINATE, not REFUSE. Collapsing the two loses the difference between 'these artifacts name different humans' - a conflict that was observed - and 'we cannot tell whose mandate this is' - a missing input. An implementation returning REFUSE for both reports a conflict it never saw."
+  "rationale": "The enrollment binding is not established on one side, so the composition has no resolution to compare. Absence of a resolution is not divergence of resolutions. XP-3 and XP-2 both end REFUSED at the decision row, and that is exactly why the decision row is not the whole result: they are told apart one row earlier, at principal_linkage UNRESOLVED against DIVERGENT, and again at evidence_satisfaction NOT_EVALUATED against UNSATISFIED. A one-column verdict renders 'we cannot tell whose mandate this is' and 'these artifacts name different humans' identically, and a reviewer cannot recover the difference from the result."
 }

@@ -120,22 +120,69 @@ table says so, not because they look alike.
 
 **An identifier with no entry is unresolved.** `did:web:example.com:principal-unresolved`
 is deliberately absent. Absence is a missing input, not a conflict — it yields
-INDETERMINATE, never REFUSE.
+`principal_linkage: UNRESOLVED`, never `DIVERGENT`.
 
 The table is the part awaiting confirmation. Until the PSEA side agrees to it,
 the WHO-join is a proposal, and XP-1 through XP-3 are proposals with it.
 
+## The staged result
+
+A composition result is **seven rows, not one verdict**. Each row carries a value
+from its own closed enum and an optional `reason` that locates the condition on
+the row that produced it.
+
+| Row | Values |
+|---|---|
+| `aae_native` | `ACCEPT` · `REJECT` |
+| `action_linkage` | `EQUIVALENT` · `NOT_EQUIVALENT` · `INDETERMINATE` |
+| `principal_linkage` | `SAME` · `DIVERGENT` · `UNRESOLVED` |
+| `evidence_satisfaction` | `SATISFIED` · `UNSATISFIED` · `NOT_EVALUATED` |
+| `decision` | `AUTHORIZED` · `REFUSED` |
+| `admission` | `NONE` · `RESERVED` · `CONSUMED` · `DISPATCH_PENDING` · `INVOKED` |
+| `outcome` | `EXECUTED` · `FAILED` · `INDETERMINATE` · `NONE` |
+
+A single verdict column has to render a divergence and a missing binding with the
+same token, and a reader cannot recover which happened. Here both end `REFUSED`
+at `decision` and are told apart one row earlier.
+
+The enums also keep unlike uncertainties apart by construction. `INDETERMINATE`
+on `action_linkage` means the linkage could not be established. `INDETERMINATE`
+on `outcome` means what happened could not be established — the case where an
+admission was spent and the result is unknown. `UNRESOLVED` on
+`principal_linkage` means an identifier had no entry. Three different facts,
+three different rows, no shared token to confuse them.
+
+Every row is always reported. A row that a failure upstream prevented from being
+established says so with its own not-established value; it is never omitted, and
+never carried over from a run that did not happen.
+
+`decision` is `AUTHORIZED` only when `aae_native` is `ACCEPT`, `action_linkage`
+is `EQUIVALENT`, `principal_linkage` is `SAME`, and `evidence_satisfaction` is
+`SATISFIED`. The schema enforces that, and enforces the propagation rules: a
+divergence forces `UNSATISFIED` and `REFUSED`; an unresolved principal may never
+read `SATISFIED`; a refusal admits and executes nothing; nothing executes without
+an admission.
+
+`admission` and `outcome` are `NONE` throughout this set. The reference checker
+decides but never admits or executes. They are in the row set so a profile that
+does act can report it in the same shape — and so that a spent admission with an
+unknown result has a row of its own rather than being forced into the decision
+column.
+
 ## The three vectors
 
-| ID | AAE grant principal | PSEA artifact | Composition | Reason |
-|---|---|---|---|---|
-| [XP-1](vectors/xp-1-aligned-principal.json) | `principal-A` | PSEA-A (`principal-A`) | **AUTHORIZED** | — |
-| [XP-2](vectors/xp-2-principal-divergence.json) | `principal-A` | PSEA-B (`principal-B`) | **REFUSE** | `principal_divergence` |
-| [XP-3](vectors/xp-3-unresolved-binding.json) | unresolved | PSEA-A (`principal-A`) | **INDETERMINATE** | `unresolved_binding` |
+| ID | AAE grant | PSEA artifact | `aae_native` | `action_linkage` | `principal_linkage` | `evidence_satisfaction` | `decision` | `admission` | `outcome` |
+|---|---|---|---|---|---|---|---|---|---|
+| [XP-1](vectors/xp-1-aligned-principal.json) | `principal-A` | PSEA-A (`principal-A`) | ACCEPT | EQUIVALENT | SAME | SATISFIED | AUTHORIZED | NONE | NONE |
+| [XP-2](vectors/xp-2-principal-divergence.json) | `principal-A` | PSEA-B (`principal-B`) | ACCEPT | EQUIVALENT | **DIVERGENT** | UNSATISFIED | REFUSED | NONE | NONE |
+| [XP-3](vectors/xp-3-unresolved-binding.json) | unresolved | PSEA-A (`principal-A`) | ACCEPT | EQUIVALENT | **UNRESOLVED** | NOT_EVALUATED | REFUSED | NONE | NONE |
+
+XP-2 carries `reason: principal_divergence` on `principal_linkage`; XP-3 carries
+`reason: unresolved_binding` on the same row.
 
 In all three, both artifacts verify natively and both carry the same action
-digest. Every single-profile check passes in every case. What differs is only
-the WHO-join.
+digest. Every single-profile check passes in every case, and the first two rows
+are identical across all three. What differs is only the WHO-join.
 
 **XP-1** — one human both mandated and approved.
 
@@ -145,11 +192,53 @@ key-to-principal resolutions. Both succeed. They name different humans. A
 composition that checks "grant valid?" and "proof valid?" and ANDs the answers
 returns AUTHORIZED here, which is wrong.
 
-**XP-3** — INDETERMINATE, not REFUSE, and the distinction is the point. The
-binding is not established on one side, so there is nothing to compare.
-Collapsing XP-2 and XP-3 into one outcome loses the difference between a
-conflict that was observed and an input that was missing, and a reviewer cannot
-recover it from the result.
+**XP-3** — the binding is not established on one side, so there is nothing to
+compare. XP-2 and XP-3 both end `REFUSED`, which is exactly why the decision row
+is not the whole result: they separate at `principal_linkage`
+(DIVERGENT / UNRESOLVED) and again at `evidence_satisfaction`
+(UNSATISFIED / NOT_EVALUATED). A conflict that was observed and an input that was
+missing stay two different facts.
+
+## Crosswalk — the rows are framework-neutral
+
+The seven rows are a spine, not a proprietary result format. They are chosen so
+that a profile with its own stage vocabulary maps onto them without renaming its
+concepts, and so that a profile with a coarser result can be expressed as a
+collapse of them rather than a translation.
+
+| Consumer | Relationship to the rows |
+|---|---|
+| This set | Reports all seven directly. |
+| **Mohamad's three-way result** (`AUTHORIZED` / `REFUSE` / `INDETERMINATE`) | A **collapsed view**, not a different model. See the collapse below. |
+| **EMILIA** (CAID / AEC / AEB) | Maps its own stage names onto these rows. |
+| **PSEA / WEXP** | Map their own stages onto these rows. |
+
+The collapse for the three-way view is exact and mechanical:
+
+    AUTHORIZED     <- decision AUTHORIZED
+    REFUSE         <- decision REFUSED and principal_linkage DIVERGENT
+    INDETERMINATE  <- decision REFUSED and principal_linkage UNRESOLVED
+                      or action_linkage INDETERMINATE
+
+Applied to this set it reproduces the earlier three-way labels exactly: XP-1
+AUTHORIZED, XP-2 REFUSE, XP-3 INDETERMINATE. The collapse is lossy in one
+direction only — the rows determine the three-way label, the label does not
+determine the rows. That is the whole reason for the change: `REFUSE` alone
+cannot say whether the conflict was in the action, the principal, or the
+evidence, and `INDETERMINATE` alone cannot say whether the linkage or the
+execution was the unknown.
+
+**The EMILIA and PSEA/WEXP rows above state an intent, not a confirmed mapping.**
+Neither mapping has been supplied by its authors, and this set does not assert
+one on their behalf. What is offered is the row set and the rule for mapping onto
+it: name the stage in your profile that establishes the same fact, and if no row
+carries a fact your profile distinguishes, that is a gap in the spine worth
+raising rather than a value to overload onto an existing row.
+
+The `principal_linkage` values remain **proposed** in the same sense the join_who
+table is: they are computed from a resolution table the counterpart profile has
+not yet confirmed. The `action_linkage` values are **confirmed** — they come from
+the 32-octet join, recomputed independently on both sides.
 
 ## The two AAE envelopes
 
@@ -171,9 +260,10 @@ not re-encoded, not re-signed, not normalized.
 ## Running
 
 ```
-pip install cryptography jsonschema
+pip install cryptography jsonschema jcs
 python3 tools/validate_interop_schema.py     # 3/3 valid against the schema
-python3 examples/composition-verify.py       # 3/3 composition vectors passed
+python3 examples/composition-verify.py       # 3/3 passed, row by row
+python3 tools/run_negative_controls.py       # 5/5 passed, row by row
 python3 tools/build_interop_psea.py          # rebuild; output must be byte-identical
 ```
 
@@ -181,17 +271,47 @@ python3 tools/build_interop_psea.py          # rebuild; output must be byte-iden
 `examples/python-verify.py` for the AAE side. The Section 5 algorithm is not
 reimplemented, and the native reference verifier is not edited.
 
-Order of operations, fail-closed throughout:
+Evaluation order, fail-closed throughout. Failing a step does not suppress the
+rows below it — each is reported with its own not-established value:
 
-1. AAE native (Section 5) — must ACCEPT, else the rejection propagates.
-2. PSEA proof native — ES256 against the enrolled JWK the fixture publishes for
-   the `kid`, inside the token's own `iat`/`exp` window, committing to the
-   digest the vector records. Must verify, else the failure propagates.
-3. WHAT-join — decode both digests, compare 32 octets. No match →
-   INDETERMINATE(`join_mismatch`), stop.
-4. WHO-join — resolve both identifiers through the table. One unresolved →
-   INDETERMINATE(`unresolved_binding`). Both resolved and equal → AUTHORIZED.
-   Both resolved and different → REFUSE(`principal_divergence`).
+1. **AAE native** (Section 5). `REJECT` → nothing downstream is admitted:
+   `action_linkage INDETERMINATE`, `principal_linkage UNRESOLVED`,
+   `evidence_satisfaction NOT_EVALUATED`, `decision REFUSED`.
+2. **PSEA proof native** — ES256 against the enrolled JWK the fixture publishes
+   for the `kid`, inside the token's own `iat`/`exp` window, committing to the
+   digest the vector records. A failure leaves the artifact's commitments
+   untrusted: `action_linkage INDETERMINATE`, `principal_linkage UNRESOLVED`
+   (its `kid` claim is unauthenticated), `evidence_satisfaction UNSATISFIED`
+   (the evidence definitively does not hold), `decision REFUSED`.
+3. **WHAT-join** — decode both digests, compare 32 octets. Equal →
+   `EQUIVALENT`; different → `NOT_EQUIVALENT`; undecodable → `INDETERMINATE`.
+4. **WHO-join** — resolve both identifiers through the table. Both resolve and
+   are equal → `SAME`; both resolve and differ → `DIVERGENT`; either has no
+   entry → `UNRESOLVED`.
+
+Step 4 is computed independently of step 3: the principal identifiers do not
+depend on which action the artifacts commit to, and a reader is owed both facts.
+
+### Negative controls
+
+The three vectors alone cannot show the checker's branches are live — all three
+reach `EQUIVALENT` and differ only at `principal_linkage`.
+[`negative-controls.json`](negative-controls.json) pins five controls, each
+mutating one input of a committed vector in memory and asserting the seven rows
+that must follow. `tools/run_negative_controls.py` runs them; CI runs it too.
+
+| # | Mutation | Reaches |
+|---|---|---|
+| C1 | one octet of the AAE-side digest flipped | `action_linkage NOT_EQUIVALENT` |
+| C2 | XP-3's principal given a table entry resolving to a different principal | `principal_linkage DIVERGENT` from the inputs that otherwise yield `UNRESOLVED` |
+| C3 | PSEA proof signature tampered | `action_linkage INDETERMINATE`, distinct from C1's `NOT_EQUIVALENT` |
+| C4 | clock moved past the AAE `not_after` | `aae_native REJECT` and clean propagation |
+| C5 | another instant inside both windows | `AUTHORIZED` — the positive control |
+
+C2 is the load-bearing one: same artifacts, same digest, one added table entry,
+and the result moves from `UNRESOLVED`/`NOT_EVALUATED` to
+`DIVERGENT`/`UNSATISFIED` while both still read `REFUSED` at `decision`. Two
+conditions, two locations, one decision value.
 
 ## What this set does not establish
 

@@ -3,7 +3,11 @@
 Recorded run of the three composition vectors, the negative controls behind
 them, and the integrity pins a reviewer needs to reproduce both.
 
-Run date: 2026-07-28. Vector set status: **proposed** (WHO-join unconfirmed).
+Run date: 2026-07-29. Vector set status: **proposed** (WHO-join unconfirmed).
+
+Results are reported as seven staged rows rather than a single composition
+verdict. See [CONFORMANCE.md](CONFORMANCE.md) for the row set, the evaluation
+order, and the collapse to a coarser three-way view.
 
 ## Environment
 
@@ -83,23 +87,43 @@ restating them.
 
 ## Composition run
 
+Comparison is row by row across all seven stages, not on a single field. Every
+differing row is reported, not just the first.
+
     $ python3 examples/composition-verify.py
-    PASS  xp-1-aligned-principal.json             AUTHORIZED
-    PASS  xp-2-principal-divergence.json          REFUSE / principal_divergence
-    PASS  xp-3-unresolved-binding.json            INDETERMINATE / unresolved_binding
+    stages: aae_native | action_linkage | principal_linkage | evidence_satisfaction | decision | admission | outcome
 
-    3/3 composition vectors passed
+    PASS  xp-1-aligned-principal.json
+            ACCEPT | EQUIVALENT | SAME | SATISFIED | AUTHORIZED | NONE | NONE
+    PASS  xp-2-principal-divergence.json
+            ACCEPT | EQUIVALENT | DIVERGENT(principal_divergence) | UNSATISFIED(principal_divergence) | REFUSED(principal_divergence) | NONE | NONE
+    PASS  xp-3-unresolved-binding.json
+            ACCEPT | EQUIVALENT | UNRESOLVED(unresolved_binding) | NOT_EVALUATED(unresolved_binding) | REFUSED(unresolved_binding) | NONE | NONE
 
-Per-vector trace:
+    3/3 composition vectors passed (row-by-row)
 
-| Vector | 1 AAE native | 2 PSEA native | 3 WHAT-join | 4 WHO-join | Verdict |
-|---|---|---|---|---|---|
-| XP-1 | ACCEPT @ 7 | VERIFIED | 32 octets equal | `principal-A` → `:A` / `principal-A` → `:A` | AUTHORIZED |
-| XP-2 | ACCEPT @ 7 | VERIFIED | 32 octets equal | `principal-A` → `:A` / `principal-B` → `:B` | REFUSE / `principal_divergence` |
-| XP-3 | ACCEPT @ 7 | VERIFIED | 32 octets equal | `principal-unresolved` → no entry / `principal-A` → `:A` | INDETERMINATE / `unresolved_binding` |
+As a table:
 
-Every native check passes in all three. Only the WHO-join separates them, which
-is the property the set exists to demonstrate.
+| Vector | `aae_native` | `action_linkage` | `principal_linkage` | `evidence_satisfaction` | `decision` | `admission` | `outcome` |
+|---|---|---|---|---|---|---|---|
+| XP-1 | ACCEPT @7 | EQUIVALENT | SAME | SATISFIED | AUTHORIZED | NONE | NONE |
+| XP-2 | ACCEPT @7 | EQUIVALENT | **DIVERGENT** | UNSATISFIED | REFUSED | NONE | NONE |
+| XP-3 | ACCEPT @7 | EQUIVALENT | **UNRESOLVED** | NOT_EVALUATED | REFUSED | NONE | NONE |
+
+The first two rows are identical across all three vectors. Every native check
+passes and every action digest joins; only the WHO-join separates them, which is
+the property the set exists to demonstrate.
+
+XP-2 and XP-3 both read REFUSED at `decision`, and that is the point of reporting
+rows rather than a verdict: they are told apart one row earlier, at
+`principal_linkage`, and again at `evidence_satisfaction`. A conflict that was
+observed and an input that was missing remain two different facts in the result.
+
+Collapsed to the counterpart fixture's three-way view — `AUTHORIZED` from
+decision AUTHORIZED, `REFUSE` from decision REFUSED with principal_linkage
+DIVERGENT, `INDETERMINATE` from decision REFUSED with principal_linkage
+UNRESOLVED — this reproduces its `expected_composition` labels exactly: XP-1
+AUTHORIZED, XP-2 REFUSE, XP-3 INDETERMINATE.
 
 Worth recording: run against the **unmodified** `examples/python-verify.py`,
 both envelopes return `ACCEPT @ step 7`, including E2 with the unresolvable
@@ -110,26 +134,51 @@ PSEA alone. That is the gap.
 
 ## Negative controls
 
-The three vectors alone would pass even if some branches of the checker were
-dead. These controls mutate one input at a time and confirm each branch is
-reachable and lands where it should. They are run against in-memory copies; no
-committed vector is modified.
+The three vectors alone would pass even if branches of the checker were dead:
+all three reach `EQUIVALENT` on `action_linkage` and differ only at
+`principal_linkage`. The controls mutate one input at a time and pin the seven
+rows that must follow. They run against in-memory copies; no committed vector is
+modified. The baseline is committed at
+[`negative-controls.json`](negative-controls.json) and CI runs it.
 
-| # | Mutation | Expected | Observed |
-|---|---|---|---|
-| C1 | flip one octet of the AAE-side digest in XP-1 | INDETERMINATE / `join_mismatch` | INDETERMINATE / `join_mismatch` |
-| C2 | add a table entry mapping XP-3's principal to canonical `:B` | REFUSE / `principal_divergence` | REFUSE / `principal_divergence` |
-| C3 | tamper one character of the PSEA-A signature in XP-1 | REFUSE / `secondary_native_reject` | REFUSE / `secondary_native_reject` |
-| C4 | move `current_time` in XP-1 past the AAE `not_after` | REFUSE / `aae_native_reject` | REFUSE / `aae_native_reject` |
-| C5 | move `current_time` in XP-1 to another instant inside both windows | AUTHORIZED | AUTHORIZED |
+    $ python3 tools/run_negative_controls.py
+    stages: aae_native | action_linkage | principal_linkage | evidence_satisfaction | decision | admission | outcome
 
-C2 is the important one. It converts XP-3 from "unresolved" to "resolved and
-divergent" by changing nothing but the table, and the verdict moves from
-INDETERMINATE to REFUSE. The two outcomes are produced by different conditions,
-not by one condition with two labels.
+    PASS  C1  One octet of the AAE-side digest flipped
+            ACCEPT | NOT_EQUIVALENT(join_mismatch) | SAME | UNSATISFIED(evidence_covers_a_different_action) | REFUSED(join_mismatch) | NONE | NONE
+    PASS  C2  XP-3's principal given a table entry resolving to a different principal
+            ACCEPT | EQUIVALENT | DIVERGENT(principal_divergence) | UNSATISFIED(principal_divergence) | REFUSED(principal_divergence) | NONE | NONE
+    PASS  C3  PSEA proof signature tampered
+            ACCEPT | INDETERMINATE(secondary_unauthenticated) | UNRESOLVED(secondary_unauthenticated) | UNSATISFIED(invalid_signature) | REFUSED(secondary_native_reject) | NONE | NONE
+    PASS  C4  Clock moved past the AAE not_after
+            REJECT(expired_not_after) | INDETERMINATE(aae_not_admitted) | UNRESOLVED(aae_not_admitted) | NOT_EVALUATED(aae_not_admitted) | REFUSED(aae_native_reject) | NONE | NONE
+    PASS  C5  Another instant inside both validity windows
+            ACCEPT | EQUIVALENT | SAME | SATISFIED | AUTHORIZED | NONE | NONE
 
-C1 also confirms the octet comparison is real: a single flipped bit in one
-encoding is caught, which a lenient string or prefix comparison would miss.
+    5/5 negative controls passed (row-by-row)
+
+Between them the controls reach every row value the three vectors do not:
+`NOT_EQUIVALENT` and `INDETERMINATE` on `action_linkage`, `DIVERGENT` on
+`principal_linkage`, `REJECT` on `aae_native`, and `UNSATISFIED` on
+`evidence_satisfaction` from three different causes.
+
+**C2 is the load-bearing one.** It takes XP-3 and adds a single table entry —
+nothing else changes, same artifacts, same action digest — and the result moves
+from `UNRESOLVED` / `NOT_EVALUATED` to `DIVERGENT` / `UNSATISFIED` while both
+still read `REFUSED` at `decision`. Two conditions, two locations in the result,
+one decision value. That is the separation a single verdict column cannot carry.
+
+**C1 against C3** shows the two negative `action_linkage` values are not
+interchangeable. C1 flips one octet: the two sides demonstrably mean different
+actions, so `NOT_EQUIVALENT`. C3 breaks the signature: the artifact commits to
+nothing that can be relied on, so `INDETERMINATE`. C1 also confirms the octet
+comparison is real — a single flipped bit in one encoding is caught, which a
+lenient string or prefix comparison would miss.
+
+**C4** confirms the native rejection propagates without any downstream row
+claiming a fact off a grant the verifier just refused. Each row below
+`aae_native` reports its own not-established value rather than being omitted or
+carried over.
 
 ## Native set unaffected
 
