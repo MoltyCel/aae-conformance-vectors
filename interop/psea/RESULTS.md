@@ -1,6 +1,6 @@
 # Results — PSEA / AAE composition set
 
-Recorded run of the three composition vectors, the negative controls behind
+Recorded run of the five composition vectors, the negative controls behind
 them, and the integrity pins a reviewer needs to reproduce both.
 
 Run date: 2026-07-29. Vector set status: **proposed** (WHO-join unconfirmed).
@@ -82,8 +82,10 @@ restating them.
     OK    interop/psea/vectors/xp-1-aligned-principal.json
     OK    interop/psea/vectors/xp-2-principal-divergence.json
     OK    interop/psea/vectors/xp-3-unresolved-binding.json
+    OK    interop/psea/vectors/xp-5a-reattempt-unresolved.json
+    OK    interop/psea/vectors/xp-5b-reattempt-authorized.json
 
-    3/3 composition vectors valid against schema
+    5/5 composition vectors valid against schema
 
 ## Composition run
 
@@ -99,8 +101,12 @@ differing row is reported, not just the first.
             ACCEPT | EQUIVALENT | DIVERGENT(principal_divergence) | UNSATISFIED(principal_divergence) | REFUSED(principal_divergence) | NONE | NONE
     PASS  xp-3-unresolved-binding.json
             ACCEPT | EQUIVALENT | UNRESOLVED(unresolved_binding) | NOT_EVALUATED(unresolved_binding) | REFUSED(unresolved_binding) | NONE | NONE
+    PASS  xp-5a-reattempt-unresolved.json
+            ACCEPT | EQUIVALENT | UNRESOLVED(unresolved_binding) | NOT_EVALUATED(unresolved_binding) | REFUSED(unresolved_binding) | NONE | NONE
+    PASS  xp-5b-reattempt-authorized.json
+            ACCEPT | EQUIVALENT | SAME | SATISFIED | AUTHORIZED | NONE | NONE
 
-    3/3 composition vectors passed (row-by-row)
+    5/5 composition vectors passed (row-by-row)
 
 As a table:
 
@@ -109,10 +115,23 @@ As a table:
 | XP-1 | ACCEPT @7 | EQUIVALENT | SAME | SATISFIED | AUTHORIZED | NONE | NONE |
 | XP-2 | ACCEPT @7 | EQUIVALENT | **DIVERGENT** | UNSATISFIED | REFUSED | NONE | NONE |
 | XP-3 | ACCEPT @7 | EQUIVALENT | **UNRESOLVED** | NOT_EVALUATED | REFUSED | NONE | NONE |
+| XP-5a | ACCEPT @7 | EQUIVALENT | **UNRESOLVED** | NOT_EVALUATED | REFUSED | NONE | NONE |
+| XP-5b | ACCEPT @7 | EQUIVALENT | **SAME** | SATISFIED | AUTHORIZED | NONE | NONE |
 
-The first two rows are identical across all three vectors. Every native check
+The first two rows are identical across all five vectors. Every native check
 passes and every action digest joins; only the WHO-join separates them, which is
 the property the set exists to demonstrate.
+
+XP-5a and XP-5b are the same bytes twice. Recomputed from the committed files:
+
+    secured_aae   sha256 c2db119de3f04a77…   identical in both
+    PSEA-A token  sha256 785d5359c8deeaec…   identical in both
+    aae_digest    sha-256:1lg8vGLBJ4MRrTEaWG2iBxiWk6mBQ_dzqPyWCuWaxgY   identical in both
+    join_who.resolution_state   xp-5a: pending_enrollment   xp-5b: (omitted -> enrolled)
+    join_who secondary table    xp-5a: [principal-B]        xp-5b: [principal-A, principal-B]
+
+Nothing on the wire differs. The relying party's enrollment state is the only
+variable, and the result moves from REFUSED to AUTHORIZED on it alone.
 
 XP-2 and XP-3 both read REFUSED at `decision`, and that is the point of reporting
 rows rather than a verdict: they are told apart one row earlier, at
@@ -134,9 +153,10 @@ PSEA alone. That is the gap.
 
 ## Negative controls
 
-The three vectors alone would pass even if branches of the checker were dead:
-all three reach `EQUIVALENT` on `action_linkage` and differ only at
-`principal_linkage`. The controls mutate one input at a time and pin the seven
+The five vectors alone would pass even if branches of the checker were dead:
+all five reach `ACCEPT` and `EQUIVALENT` on the first two rows and differ only
+from `principal_linkage` onward, so no vector ever produces `NOT_EQUIVALENT`,
+`INDETERMINATE` or `REJECT`. The controls mutate one input at a time and pin the seven
 rows that must follow. They run against in-memory copies; no committed vector is
 modified. The baseline is committed at
 [`negative-controls.json`](negative-controls.json) and CI runs it.
@@ -157,7 +177,7 @@ modified. The baseline is committed at
 
     5/5 negative controls passed (row-by-row)
 
-Between them the controls reach every row value the three vectors do not:
+Between them the controls reach every row value no vector produces:
 `NOT_EQUIVALENT` and `INDETERMINATE` on `action_linkage`, `DIVERGENT` on
 `principal_linkage`, `REJECT` on `aae_native`, and `UNSATISFIED` on
 `evidence_satisfaction` from three different causes.

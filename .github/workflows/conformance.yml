@@ -33,7 +33,7 @@ jobs:
           shasum -a 256 -c psea-fixture-v0.sha256
       - name: Validate composition vectors against the extension schema
         run: python3 tools/validate_interop_schema.py
-      - name: Run composition checker (must be 3/3, compared row by row)
+      - name: Run composition checker (must be 5/5, compared row by row)
         run: python3 examples/composition-verify.py
       - name: Run negative controls (must be 5/5, compared row by row)
         run: python3 tools/run_negative_controls.py

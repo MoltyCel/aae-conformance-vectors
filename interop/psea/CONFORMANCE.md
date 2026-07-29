@@ -83,6 +83,8 @@ rather than the first one that failed.
 | xp-1-aligned-principal | ACCEPT | EQUIVALENT | SAME | SATISFIED | AUTHORIZED | NONE | NONE | §5 steps 1-7 | §2.5, §3.8 |
 | xp-2-principal-divergence | ACCEPT | EQUIVALENT | DIVERGENT | UNSATISFIED | REFUSED | NONE | NONE | §5 steps 1-7 | §2.5, §3.8 |
 | xp-3-unresolved-binding | ACCEPT | EQUIVALENT | UNRESOLVED | NOT_EVALUATED | REFUSED | NONE | NONE | §5 steps 1-7 | §2.5, §3.8 |
+| xp-5a-reattempt-unresolved | ACCEPT | EQUIVALENT | UNRESOLVED | NOT_EVALUATED | REFUSED | NONE | NONE | §5 steps 1-7 | §2.5, §3.8 |
+| xp-5b-reattempt-authorized | ACCEPT | EQUIVALENT | SAME | SATISFIED | AUTHORIZED | NONE | NONE | §5 steps 1-7 | §2.5, §3.8 |
 
 What each tests:
 
@@ -96,10 +98,17 @@ What each tests:
   refusal it causes.
 - **xp-3** — one side's principal has no table entry. There is no resolution to
   compare.
+- **xp-5a / xp-5b** — the same artifacts, twice, across a change in the relying
+  party's own state. Both carry the same AAE envelope, the same PSEA-A proof and
+  the same 32-octet digest; only `join_who.resolution_state` differs
+  (`pending_enrollment` against the default `enrolled`). The pair isolates
+  enrollment as the sole variable between a refusal and an authorization.
 
-All three are `structural` in the derivation sense the native set uses: given the
+All five are `structural` in the derivation sense the native set uses: given the
 documents, the declared resolution table, and the vector's `current_time`, every
-row follows without live external state. That is orthogonal to enforcement
+row follows without live external state. That holds for xp-5a and xp-5b too: the
+enrollment state each is evaluated in is declared in the vector, not looked up
+live. That is orthogonal to enforcement
 posture — a composition layer may run these in advisory mode and only log.
 
 ## Why the rows, and not a verdict
@@ -111,7 +120,17 @@ separate at `principal_linkage` (DIVERGENT against UNRESOLVED) and again at
 
 xp-2 reports a conflict that was observed: two resolutions succeeded and
 disagreed. xp-3 reports an input that was missing: one resolution did not succeed
-at all. Under a single verdict column those two either share a token — and a
+at all.
+
+xp-5a and xp-5b make the same argument over time rather than across inputs. The
+two carry identical bytes — same envelope, same proof, same digest — and differ
+only in the relying party's enrollment state. Collapsed to a single column the
+transition reads `INDETERMINATE -> AUTHORIZED` and stops there. The rows say
+which stage moved, `principal_linkage` from UNRESOLVED to SAME, and equally which
+stages did not: `aae_native` and `action_linkage` are unchanged, so nothing about
+the grant or the action was ever in question. A relying party can attribute the
+first refusal to its own missing enrollment rather than to the agent, which a
+verdict column cannot support. Under a single verdict column those two either share a token — and a
 reviewer cannot tell which happened — or they are given different tokens and the
 column starts encoding stage information without saying which stage. The rows say
 which stage.
@@ -151,11 +170,14 @@ in the spine rather than overloading an existing row.
 Section 5. It performs real ES256 verification for step 2 against the enrolled
 JWKs the counterpart fixture publishes.
 
-Result on this set: **3/3**, compared row by row rather than on a single field.
-The five negative controls in `negative-controls.json` reach the row values the
-three vectors do not — `NOT_EQUIVALENT`, `INDETERMINATE`, `REJECT`, and
-`DIVERGENT` from the same inputs that otherwise yield `UNRESOLVED` — and pass
-5/5. See [RESULTS.md](RESULTS.md) for both runs and the integrity pins.
+Result on this set: **5/5**, compared row by row rather than on a single field.
+The five negative controls in `negative-controls.json` reach the row values no
+vector produces — `NOT_EQUIVALENT` and `INDETERMINATE` on `action_linkage`,
+`REJECT` on `aae_native`, and `DIVERGENT` from the same inputs that otherwise
+yield `UNRESOLVED` — and pass 5/5. Vectors and controls are complementary: the
+vectors cover what a relying party legitimately encounters, the controls cover
+the branches nothing legitimate reaches. See [RESULTS.md](RESULTS.md) for both
+runs and the integrity pins.
 
 ## Status of the two axes
 
@@ -166,14 +188,18 @@ three vectors do not — `NOT_EQUIVALENT`, `INDETERMINATE`, `REJECT`, and
 
 Per Section 7 of draft-mih-sato-agent-accountability-composition-00, a vector
 freezes only after two independent implementations recompute it. The WHAT-join
-meets that bar. The WHO-join does not yet, so all three vectors carry
+meets that bar. The WHO-join does not yet, so all five vectors carry
 `"status": "proposed"` and this set is not a conformance claim.
 
 ## Open items for the counterpart side
 
-1. **Confirm or amend the resolution table.** The canonical space
-   `urn:interop:aae-psea:principal` and the two mappings in
-   `principal-resolution.json` are this side's proposal. The AAE-side DID form
+1. **Confirm or amend the resolution table, including its states.** The canonical
+   space `urn:interop:aae-psea:principal` and the two mappings in
+   `principal-resolution.json` are this side's proposal, as is the `states` map
+   that models a relying party partway through enrollment (`secondary_omits`).
+   xp-5a/xp-5b turn the enrollment gap of draft-yossif-enrollment-problem-00 into
+   a state transition, so whether enrollment state belongs in a conformance
+   vector at all is part of what needs agreeing. The AAE-side DID form
    (`did:web:example.com:principal-A`) is a choice, not something the counterpart
    fixture fixes — it binds `kid`s to bare labels.
 2. **Confirm the unit convention.** `amount_minor` as integer minor units on the

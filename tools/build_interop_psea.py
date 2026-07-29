@@ -172,6 +172,37 @@ def secondary_artifact(fix: dict, artifact_id: str) -> dict:
     }
 
 
+def join_who_for(table: dict, state_name: str) -> dict:
+    """Derive a vector's join_who block for a named relying-party enrollment state.
+
+    The derivation is DATA, not a literal in this file: principal-resolution.json
+    carries the fully enrolled table plus a `states` map, and each state names the
+    secondary entries the relying party has not enrolled yet. A checker still only
+    ever looks identifiers up in the table it is handed.
+
+    The default state is omitted from the emitted block, so a vector evaluated in
+    it carries no resolution_state field and reads exactly as it did before states
+    existed. A vector in any other state names it, so a reader can see why an
+    entry is missing rather than inferring it from a gap.
+    """
+    state = table["states"][state_name]
+    omits = set(state.get("secondary_omits", ()))
+    block = {
+        "status": table["status"],
+        "canonical_space": table["canonical_space"],
+        "unresolved_rule": table["unresolved_rule"],
+    }
+    if state_name != table["default_state"]:
+        block["resolution_state"] = state_name
+        block["state_note"] = state["note"]
+    block["principal_resolution"] = {
+        "aae": table["principal_resolution"]["aae"],
+        "secondary": {k: v for k, v in table["principal_resolution"]["secondary"].items()
+                      if k not in omits},
+    }
+    return block
+
+
 def main() -> int:
     fix = load_fixture()
     payload = fix["action_payload_cleartext"]
@@ -188,12 +219,6 @@ def main() -> int:
 
     with open(os.path.join(INTEROP, "principal-resolution.json")) as fh:
         table = json.load(fh)
-    join_who = {
-        "status": table["status"],
-        "canonical_space": table["canonical_space"],
-        "unresolved_rule": table["unresolved_rule"],
-        "principal_resolution": table["principal_resolution"],
-    }
 
     join_what = {
         "definition": "SHA-256 over JCS (RFC 8785) of the action payload",
@@ -364,6 +389,65 @@ def main() -> int:
                          "and 'these artifacts name different humans' identically, and a "
                          "reviewer cannot recover the difference from the result.",
         },
+        {
+            "id": "xp-5a",
+            "file": "xp-5a-reattempt-unresolved.json",
+            "name": "Re-attempt, first pass - binding not yet enrolled",
+            "description": "Identical AAE grant (principal-A) and identical PSEA-A proof as "
+                           "the second pass. The relying party has not yet enrolled the PSEA "
+                           "signer's key, so the secondary binding does not resolve. Same "
+                           "32-octet action digest.",
+            "secured_aae": jws1,
+            "artifact": "PSEA-A",
+            "resolution_state": "pending_enrollment",
+            "expected": {
+                "stages": {
+                    "aae_native": {"value": "ACCEPT", "verification_step": 7},
+                    "action_linkage": {"value": "EQUIVALENT"},
+                    "principal_linkage": {"value": "UNRESOLVED",
+                                          "reason": "unresolved_binding"},
+                    "evidence_satisfaction": {"value": "NOT_EVALUATED"},
+                    "decision": {"value": "REFUSED"},
+                    "admission": {"value": "NONE"},
+                    "outcome": {"value": "NONE"},
+                },
+            },
+            "rationale": "The agent's identity is byte-identical to the second pass - same AAE "
+                         "envelope, same PSEA proof. What is missing is the relying party's "
+                         "enrollment of the signer key, so the secondary side has no "
+                         "resolution and principal_linkage is UNRESOLVED, one row that "
+                         "separates it from the DIVERGENT of xp-2. Evidence is NOT_EVALUATED "
+                         "because there is no second resolution to compare. Paired with "
+                         "xp-5b, this isolates enrollment as the only thing that changed "
+                         "between refusal and authorization.",
+        },
+        {
+            "id": "xp-5b",
+            "file": "xp-5b-reattempt-authorized.json",
+            "name": "Re-attempt, second pass - binding now enrolled",
+            "description": "The same AAE grant and the same PSEA-A proof as xp-5a, evaluated "
+                           "after the relying party has enrolled the signer key. Both sides "
+                           "now resolve to the same principal.",
+            "secured_aae": jws1,
+            "artifact": "PSEA-A",
+            "expected": {
+                "stages": {
+                    "aae_native": {"value": "ACCEPT", "verification_step": 7},
+                    "action_linkage": {"value": "EQUIVALENT"},
+                    "principal_linkage": {"value": "SAME"},
+                    "evidence_satisfaction": {"value": "SATISFIED"},
+                    "decision": {"value": "AUTHORIZED"},
+                    "admission": {"value": "NONE"},
+                    "outcome": {"value": "NONE"},
+                },
+            },
+            "rationale": "Nothing on the wire changed from xp-5a - the AAE envelope and the "
+                         "PSEA proof are the same bytes. Only the relying party's enrollment "
+                         "table advanced, so the secondary binding now resolves to the same "
+                         "principal as the AAE grant. The verdict moves from REFUSED to "
+                         "AUTHORIZED on the binding evidence alone, a property a "
+                         "single-snapshot vector cannot show.",
+        },
     ]
 
     for v in vectors:
@@ -381,7 +465,8 @@ def main() -> int:
                 "context": base_context,
                 "secondary_artifact": secondary_artifact(fix, v["artifact"]),
                 "join_what": join_what,
-                "join_who": join_who,
+                "join_who": join_who_for(
+                    table, v.get("resolution_state", table["default_state"])),
             },
             "expected": v["expected"],
             "rationale": v["rationale"],

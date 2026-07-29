@@ -1,7 +1,9 @@
 # PSEA / AAE composition vectors
 
-Three vectors that pair one AAE with one PSEA proof over the same action and
-state what the composition of the two should return.
+Five vectors that pair one AAE with one PSEA proof over the same action and
+state what the composition of the two should return. Three are single snapshots
+of different inputs; the last two are the same inputs before and after the
+relying party enrolls a binding.
 
 Counterpart profile: [draft-yossif-psea-02](https://github.com/yuthent/psea-spec),
 whose side of the cross-run is `conformance/interop-aae/psea-fixture-v0.json`.
@@ -122,8 +124,17 @@ table says so, not because they look alike.
 is deliberately absent. Absence is a missing input, not a conflict — it yields
 `principal_linkage: UNRESOLVED`, never `DIVERGENT`.
 
+**The table has enrollment states.** `principal_resolution` is the fully
+enrolled table. `states` names the relying-party states a vector may be
+evaluated in, each derived from it by omitting the secondary entries not
+enrolled yet (`secondary_omits`). A vector names its state in
+`join_who.resolution_state`; omitting the field means the default `enrolled`
+state. The derivation is data in this file, never a literal in the builder, so
+the vectors cannot drift from it. XP-5a is the only vector in a non-default
+state.
+
 The table is the part awaiting confirmation. Until the PSEA side agrees to it,
-the WHO-join is a proposal, and XP-1 through XP-3 are proposals with it.
+the WHO-join is a proposal, and all five vectors are proposals with it.
 
 ## The staged result
 
@@ -169,20 +180,22 @@ does act can report it in the same shape — and so that a spent admission with 
 unknown result has a row of its own rather than being forced into the decision
 column.
 
-## The three vectors
+## The five vectors
 
 | ID | AAE grant | PSEA artifact | `aae_native` | `action_linkage` | `principal_linkage` | `evidence_satisfaction` | `decision` | `admission` | `outcome` |
 |---|---|---|---|---|---|---|---|---|---|
 | [XP-1](vectors/xp-1-aligned-principal.json) | `principal-A` | PSEA-A (`principal-A`) | ACCEPT | EQUIVALENT | SAME | SATISFIED | AUTHORIZED | NONE | NONE |
 | [XP-2](vectors/xp-2-principal-divergence.json) | `principal-A` | PSEA-B (`principal-B`) | ACCEPT | EQUIVALENT | **DIVERGENT** | UNSATISFIED | REFUSED | NONE | NONE |
 | [XP-3](vectors/xp-3-unresolved-binding.json) | unresolved | PSEA-A (`principal-A`) | ACCEPT | EQUIVALENT | **UNRESOLVED** | NOT_EVALUATED | REFUSED | NONE | NONE |
+| [XP-5a](vectors/xp-5a-reattempt-unresolved.json) | `principal-A` | PSEA-A (`principal-A`) | ACCEPT | EQUIVALENT | **UNRESOLVED** | NOT_EVALUATED | REFUSED | NONE | NONE |
+| [XP-5b](vectors/xp-5b-reattempt-authorized.json) | `principal-A` | PSEA-A (`principal-A`) | ACCEPT | EQUIVALENT | **SAME** | SATISFIED | AUTHORIZED | NONE | NONE |
 
-XP-2 carries `reason: principal_divergence` on `principal_linkage`; XP-3 carries
-`reason: unresolved_binding` on the same row.
+XP-2 carries `reason: principal_divergence` on `principal_linkage`; XP-3 and
+XP-5a carry `reason: unresolved_binding` on the same row.
 
-In all three, both artifacts verify natively and both carry the same action
+In all five, both artifacts verify natively and both carry the same action
 digest. Every single-profile check passes in every case, and the first two rows
-are identical across all three. What differs is only the WHO-join.
+are identical across all five. What differs is only the WHO-join.
 
 **XP-1** — one human both mandated and approved.
 
@@ -198,6 +211,28 @@ is not the whole result: they separate at `principal_linkage`
 (DIVERGENT / UNRESOLVED) and again at `evidence_satisfaction`
 (UNSATISFIED / NOT_EVALUATED). A conflict that was observed and an input that was
 missing stay two different facts.
+
+**XP-5a and XP-5b** — the same question over time. The two vectors carry the
+*same bytes*: identical AAE envelope (`c2db119d…`), identical PSEA-A proof
+(`785d5359…`), identical 32-octet action digest. Nothing on the wire differs.
+What differs is the relying party's own enrollment state, declared as data in
+`principal-resolution.json` and named on the vector as
+`join_who.resolution_state`. In `pending_enrollment` the signer key bound to
+`principal-A` is not enrolled yet, so the secondary side has no resolution and
+the result is REFUSED. In the default `enrolled` state it resolves and the same
+artifacts are AUTHORIZED.
+
+That pair is what a single-snapshot vector cannot show. Under a collapsed
+verdict the transition reads `INDETERMINATE → AUTHORIZED` and stops there. The
+rows say *which* stage moved — `principal_linkage` UNRESOLVED to SAME, carrying
+`evidence_satisfaction` with it — and, just as importantly, which stages did
+not: `aae_native` and `action_linkage` are unchanged, so nothing about the grant
+or the action was ever in question. A refusal that a reviewer can attribute to
+the relying party's own missing enrollment, rather than to the agent, is the
+practical payoff of reporting stages.
+
+It is also the first artifact in this set that exercises the enrollment gap of
+draft-yossif-enrollment-problem-00 as a state transition instead of naming it.
 
 ## Crosswalk — the rows are framework-neutral
 
@@ -261,8 +296,8 @@ not re-encoded, not re-signed, not normalized.
 
 ```
 pip install cryptography jsonschema jcs
-python3 tools/validate_interop_schema.py     # 3/3 valid against the schema
-python3 examples/composition-verify.py       # 3/3 passed, row by row
+python3 tools/validate_interop_schema.py     # 5/5 valid against the schema
+python3 examples/composition-verify.py       # 5/5 passed, row by row
 python3 tools/run_negative_controls.py       # 5/5 passed, row by row
 python3 tools/build_interop_psea.py          # rebuild; output must be byte-identical
 ```
@@ -294,8 +329,10 @@ depend on which action the artifacts commit to, and a reader is owed both facts.
 
 ### Negative controls
 
-The three vectors alone cannot show the checker's branches are live — all three
-reach `EQUIVALENT` and differ only at `principal_linkage`.
+The five vectors alone cannot show the checker's branches are live — all five
+reach `ACCEPT` and `EQUIVALENT` on the first two rows and differ only from
+`principal_linkage` onward, so `NOT_EQUIVALENT`, `INDETERMINATE` and `REJECT`
+are never produced by any of them.
 [`negative-controls.json`](negative-controls.json) pins five controls, each
 mutating one input of a committed vector in memory and asserting the seven rows
 that must follow. `tools/run_negative_controls.py` runs them; CI runs it too.

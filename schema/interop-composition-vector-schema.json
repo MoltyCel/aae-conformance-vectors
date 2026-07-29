@@ -19,7 +19,7 @@
   "properties": {
     "id": {
       "type": "string",
-      "pattern": "^xp-[0-9]+$",
+      "pattern": "^xp-[0-9]+[a-z]?$",
       "description": "Composition-vector id, distinct from the aae-vector-NN namespace of the native set."
     },
     "name": { "type": "string", "minLength": 1 },
@@ -188,7 +188,17 @@
             "unresolved_rule": {
               "type": "string",
               "const": "an identifier with no entry in the table is unresolved",
-              "description": "Absence of an entry is a missing input, not a conflict. It yields INDETERMINATE, never REFUSE."
+              "description": "Absence of an entry is a missing input, not a conflict. It yields UNRESOLVED on principal_linkage, never DIVERGENT."
+            },
+            "resolution_state": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Which relying-party enrollment state this vector is evaluated in, named in the states map of the counterpart resolution file. Omitted means the default state, in which every signer key is enrolled. Present when the relying party has not yet enrolled some binding, so a reader sees why an entry is missing from the table below instead of inferring it from a gap. The identifiers and the artifacts are unaffected: a state changes only what the relying party knows."
+            },
+            "state_note": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The named state's own note, copied from the resolution file so the vector stays self-contained."
             },
             "principal_resolution": {
               "type": "object",
