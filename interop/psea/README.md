@@ -318,7 +318,7 @@ not re-encoded, not re-signed, not normalized.
 pip install cryptography jsonschema jcs
 python3 tools/validate_interop_schema.py     # 6/6 valid against the schema
 python3 examples/composition-verify.py       # 6/6 passed, row by row
-python3 tools/run_negative_controls.py       # 5/5 passed, row by row
+python3 tools/run_negative_controls.py       # 7/7 passed, row by row
 python3 tools/build_interop_psea.py          # rebuild; output must be byte-identical
 ```
 
@@ -353,17 +353,20 @@ The six vectors alone cannot show the checker's branches are live — all six
 reach `ACCEPT` and `EQUIVALENT` on the first two rows and differ only from
 `principal_linkage` onward, so `NOT_EQUIVALENT`, `INDETERMINATE` and `REJECT`
 are never produced by any of them.
-[`negative-controls.json`](negative-controls.json) pins five controls, each
-mutating one input of a committed vector in memory and asserting the seven rows
-that must follow. `tools/run_negative_controls.py` runs them; CI runs it too.
+[`negative-controls.json`](negative-controls.json) pins seven controls. Each
+changes one input of a committed vector and asserts the seven rows that must
+follow; C7 substitutes a committed, separately signed envelope rather than
+patching one. `tools/run_negative_controls.py` runs them, and CI runs it too.
 
 | # | Mutation | Reaches |
 |---|---|---|
-| C1 | one octet of the AAE-side digest flipped | `action_linkage NOT_EQUIVALENT` |
+| C1 | one octet of the secondary-side digest flipped | `action_linkage NOT_EQUIVALENT` |
 | C2 | XP-3's principal given a table entry resolving to a different principal | `principal_linkage DIVERGENT` from the inputs that otherwise yield `UNRESOLVED` |
 | C3 | PSEA proof signature tampered | `action_linkage INDETERMINATE`, distinct from C1's `NOT_EQUIVALENT` |
 | C4 | clock moved past the AAE `not_after` | `aae_native REJECT` and clean propagation |
 | C5 | another instant inside both windows | `AUTHORIZED` — the positive control |
+| C6 | declared `aae_digest` differs from the signed `action_binding` | `action_linkage INDETERMINATE` / `aae_binding_mismatch` |
+| C7 | signed envelope (E4) carries no `action_binding` | `action_linkage INDETERMINATE` / `aae_binding_absent` |
 
 C2 is the load-bearing one: same artifacts, same digest, one added table entry,
 and the result moves from `UNRESOLVED`/`NOT_EVALUATED` to

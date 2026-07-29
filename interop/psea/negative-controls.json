@@ -1,5 +1,5 @@
 {
-  "note": "Baseline for the negative controls. The three composition vectors alone would pass even if branches of the checker were dead: they all reach the same action_linkage and differ only at principal_linkage. Each control mutates ONE input of a committed vector, in memory, and pins the seven rows the checker must then report. No committed vector is modified. Run with tools/run_negative_controls.py.",
+  "note": "Baseline for the negative controls. The six composition vectors alone would pass even if branches of the checker were dead: they all reach ACCEPT and EQUIVALENT on the first two rows and differ only from principal_linkage onward. Each control changes ONE input of a committed vector and pins the seven rows the checker must then report. C7 substitutes a committed, separately signed envelope instead of mutating one. No committed vector is modified. Run with tools/run_negative_controls.py.",
   "stage_order": [
     "aae_native",
     "action_linkage",
@@ -12,19 +12,41 @@
   "controls": [
     {
       "id": "C1",
-      "name": "One octet of the AAE-side digest flipped",
+      "name": "One octet of the secondary-side digest flipped",
       "base_vector": "xp-1-aligned-principal.json",
-      "mutation": { "op": "flip_digest_octet", "target": "aae_digest", "index": 0 },
-      "why": "Proves the WHAT-join compares octets rather than prefixes or strings: a single flipped bit in one encoding must be caught. Also proves NOT_EQUIVALENT is reachable, which no committed vector exercises.",
+      "mutation": {
+        "op": "flip_digest_octet",
+        "target": "secondary_digest",
+        "index": 0
+      },
+      "why": "Proves the WHAT-join compares octets rather than prefixes or strings: a single flipped bit in one encoding must be caught. Also the only control reaching NOT_EQUIVALENT. The flip targets the secondary declaration on purpose - flipping aae_digest would break the envelope-binding check that now runs first and land on INDETERMINATE(aae_binding_mismatch) instead, which is what C6 tests. Keeping the AAE side consistent with its signed envelope is what leaves NOT_EQUIVALENT reachable at all.",
       "expected": {
         "stages": {
-          "aae_native": { "value": "ACCEPT", "verification_step": 7 },
-          "action_linkage": { "value": "NOT_EQUIVALENT", "reason": "join_mismatch" },
-          "principal_linkage": { "value": "SAME" },
-          "evidence_satisfaction": { "value": "UNSATISFIED", "reason": "evidence_covers_a_different_action" },
-          "decision": { "value": "REFUSED", "reason": "join_mismatch" },
-          "admission": { "value": "NONE" },
-          "outcome": { "value": "NONE" }
+          "aae_native": {
+            "value": "ACCEPT",
+            "verification_step": 7
+          },
+          "action_linkage": {
+            "value": "NOT_EQUIVALENT",
+            "reason": "join_mismatch"
+          },
+          "principal_linkage": {
+            "value": "SAME"
+          },
+          "evidence_satisfaction": {
+            "value": "UNSATISFIED",
+            "reason": "evidence_covers_a_different_action"
+          },
+          "decision": {
+            "value": "REFUSED",
+            "reason": "join_mismatch"
+          },
+          "admission": {
+            "value": "NONE"
+          },
+          "outcome": {
+            "value": "NONE"
+          }
         }
       }
     },
@@ -41,13 +63,31 @@
       "why": "The load-bearing control. Same artifacts, same action digest, one added table entry, and principal_linkage moves UNRESOLVED -> DIVERGENT while evidence_satisfaction moves NOT_EVALUATED -> UNSATISFIED. The two outcomes come from different conditions, not from one condition wearing two labels. Both still end REFUSED at the decision row, which is precisely why the decision row is not the whole result.",
       "expected": {
         "stages": {
-          "aae_native": { "value": "ACCEPT", "verification_step": 7 },
-          "action_linkage": { "value": "EQUIVALENT" },
-          "principal_linkage": { "value": "DIVERGENT", "reason": "principal_divergence" },
-          "evidence_satisfaction": { "value": "UNSATISFIED", "reason": "principal_divergence" },
-          "decision": { "value": "REFUSED", "reason": "principal_divergence" },
-          "admission": { "value": "NONE" },
-          "outcome": { "value": "NONE" }
+          "aae_native": {
+            "value": "ACCEPT",
+            "verification_step": 7
+          },
+          "action_linkage": {
+            "value": "EQUIVALENT"
+          },
+          "principal_linkage": {
+            "value": "DIVERGENT",
+            "reason": "principal_divergence"
+          },
+          "evidence_satisfaction": {
+            "value": "UNSATISFIED",
+            "reason": "principal_divergence"
+          },
+          "decision": {
+            "value": "REFUSED",
+            "reason": "principal_divergence"
+          },
+          "admission": {
+            "value": "NONE"
+          },
+          "outcome": {
+            "value": "NONE"
+          }
         }
       }
     },
@@ -55,17 +95,38 @@
       "id": "C3",
       "name": "PSEA proof signature tampered",
       "base_vector": "xp-1-aligned-principal.json",
-      "mutation": { "op": "tamper_token_signature" },
+      "mutation": {
+        "op": "tamper_token_signature"
+      },
       "why": "An unauthenticated artifact commits to nothing and its kid claim carries no principal. Proves action_linkage INDETERMINATE is reachable and is a different fact from NOT_EQUIVALENT: C1 establishes that the two sides mean different actions, C3 establishes nothing at all about what the artifact means. The evidence, by contrast, is a definite failure, so it reads UNSATISFIED rather than NOT_EVALUATED.",
       "expected": {
         "stages": {
-          "aae_native": { "value": "ACCEPT", "verification_step": 7 },
-          "action_linkage": { "value": "INDETERMINATE", "reason": "secondary_unauthenticated" },
-          "principal_linkage": { "value": "UNRESOLVED", "reason": "secondary_unauthenticated" },
-          "evidence_satisfaction": { "value": "UNSATISFIED", "reason": "invalid_signature" },
-          "decision": { "value": "REFUSED", "reason": "secondary_native_reject" },
-          "admission": { "value": "NONE" },
-          "outcome": { "value": "NONE" }
+          "aae_native": {
+            "value": "ACCEPT",
+            "verification_step": 7
+          },
+          "action_linkage": {
+            "value": "INDETERMINATE",
+            "reason": "secondary_unauthenticated"
+          },
+          "principal_linkage": {
+            "value": "UNRESOLVED",
+            "reason": "secondary_unauthenticated"
+          },
+          "evidence_satisfaction": {
+            "value": "UNSATISFIED",
+            "reason": "invalid_signature"
+          },
+          "decision": {
+            "value": "REFUSED",
+            "reason": "secondary_native_reject"
+          },
+          "admission": {
+            "value": "NONE"
+          },
+          "outcome": {
+            "value": "NONE"
+          }
         }
       }
     },
@@ -73,17 +134,40 @@
       "id": "C4",
       "name": "Clock moved past the AAE not_after",
       "base_vector": "xp-1-aligned-principal.json",
-      "mutation": { "op": "set_current_time", "value": "2026-07-29T09:30:00Z" },
+      "mutation": {
+        "op": "set_current_time",
+        "value": "2026-07-29T09:30:00Z"
+      },
       "why": "Proves the native AAE rejection propagates without any downstream row claiming a fact off a grant the verifier just refused. Every row below aae_native reports not-established rather than being omitted or carried over from the unmutated run.",
       "expected": {
         "stages": {
-          "aae_native": { "value": "REJECT", "reason": "expired_not_after", "verification_step": 3 },
-          "action_linkage": { "value": "INDETERMINATE", "reason": "aae_not_admitted" },
-          "principal_linkage": { "value": "UNRESOLVED", "reason": "aae_not_admitted" },
-          "evidence_satisfaction": { "value": "NOT_EVALUATED", "reason": "aae_not_admitted" },
-          "decision": { "value": "REFUSED", "reason": "aae_native_reject" },
-          "admission": { "value": "NONE" },
-          "outcome": { "value": "NONE" }
+          "aae_native": {
+            "value": "REJECT",
+            "reason": "expired_not_after",
+            "verification_step": 3
+          },
+          "action_linkage": {
+            "value": "INDETERMINATE",
+            "reason": "aae_not_admitted"
+          },
+          "principal_linkage": {
+            "value": "UNRESOLVED",
+            "reason": "aae_not_admitted"
+          },
+          "evidence_satisfaction": {
+            "value": "NOT_EVALUATED",
+            "reason": "aae_not_admitted"
+          },
+          "decision": {
+            "value": "REFUSED",
+            "reason": "aae_native_reject"
+          },
+          "admission": {
+            "value": "NONE"
+          },
+          "outcome": {
+            "value": "NONE"
+          }
         }
       }
     },
@@ -91,17 +175,116 @@
       "id": "C5",
       "name": "Another instant inside both validity windows",
       "base_vector": "xp-1-aligned-principal.json",
-      "mutation": { "op": "set_current_time", "value": "2026-07-29T08:00:30Z" },
+      "mutation": {
+        "op": "set_current_time",
+        "value": "2026-07-29T08:00:30Z"
+      },
       "why": "Positive control. Confirms the four preceding controls fail for their stated reason and not because any perturbation of the inputs refuses.",
       "expected": {
         "stages": {
-          "aae_native": { "value": "ACCEPT", "verification_step": 7 },
-          "action_linkage": { "value": "EQUIVALENT" },
-          "principal_linkage": { "value": "SAME" },
-          "evidence_satisfaction": { "value": "SATISFIED" },
-          "decision": { "value": "AUTHORIZED" },
-          "admission": { "value": "NONE" },
-          "outcome": { "value": "NONE" }
+          "aae_native": {
+            "value": "ACCEPT",
+            "verification_step": 7
+          },
+          "action_linkage": {
+            "value": "EQUIVALENT"
+          },
+          "principal_linkage": {
+            "value": "SAME"
+          },
+          "evidence_satisfaction": {
+            "value": "SATISFIED"
+          },
+          "decision": {
+            "value": "AUTHORIZED"
+          },
+          "admission": {
+            "value": "NONE"
+          },
+          "outcome": {
+            "value": "NONE"
+          }
+        }
+      }
+    },
+    {
+      "id": "C6",
+      "name": "Declared aae_digest differs from the signed action_binding",
+      "base_vector": "xp-1-aligned-principal.json",
+      "mutation": {
+        "op": "flip_digest_octet",
+        "target": "aae_digest",
+        "index": 0
+      },
+      "why": "The vector declares an action digest the envelope it ships does not commit to. Step 1 authenticated that envelope, so mandate.action_binding is signed bytes and the declaration has to match it. Before this check existed the flip produced NOT_EQUIVALENT, treating a vector-internal inconsistency as a disagreement between two profiles. INDETERMINATE is the correct reading: an envelope that does not commit to the declared digest establishes nothing about which action it authorizes.",
+      "expected": {
+        "stages": {
+          "aae_native": {
+            "value": "ACCEPT",
+            "verification_step": 7
+          },
+          "action_linkage": {
+            "value": "INDETERMINATE",
+            "reason": "aae_binding_mismatch"
+          },
+          "principal_linkage": {
+            "value": "UNRESOLVED",
+            "reason": "action_linkage_unestablished"
+          },
+          "evidence_satisfaction": {
+            "value": "NOT_EVALUATED",
+            "reason": "action_linkage_unestablished"
+          },
+          "decision": {
+            "value": "REFUSED",
+            "reason": "action_linkage_unestablished"
+          },
+          "admission": {
+            "value": "NONE"
+          },
+          "outcome": {
+            "value": "NONE"
+          }
+        }
+      }
+    },
+    {
+      "id": "C7",
+      "name": "Signed envelope carries no action_binding",
+      "base_vector": "xp-1-aligned-principal.json",
+      "mutation": {
+        "op": "use_envelope",
+        "file": "E4-no-action-binding.json"
+      },
+      "why": "E4 is minted and signed by the builder with the committed test keys and omits mandate.action_binding. It is substituted whole rather than patched at run time, so the checker meets a genuinely signed envelope rather than a mutated one. A well-formed AAE that makes no commitment to an action digest leaves the linkage unestablished; it is not a mismatch, because there is nothing to mismatch against.",
+      "expected": {
+        "stages": {
+          "aae_native": {
+            "value": "ACCEPT",
+            "verification_step": 7
+          },
+          "action_linkage": {
+            "value": "INDETERMINATE",
+            "reason": "aae_binding_absent"
+          },
+          "principal_linkage": {
+            "value": "UNRESOLVED",
+            "reason": "action_linkage_unestablished"
+          },
+          "evidence_satisfaction": {
+            "value": "NOT_EVALUATED",
+            "reason": "action_linkage_unestablished"
+          },
+          "decision": {
+            "value": "REFUSED",
+            "reason": "action_linkage_unestablished"
+          },
+          "admission": {
+            "value": "NONE"
+          },
+          "outcome": {
+            "value": "NONE"
+          }
         }
       }
     }

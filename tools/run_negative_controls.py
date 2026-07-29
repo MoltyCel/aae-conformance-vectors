@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """Run the negative controls in interop/psea/negative-controls.json.
 
-Each control mutates ONE input of a committed vector, in memory, and asserts the
-seven rows the checker must then report. Nothing on disk is modified.
+Each control changes ONE input of a committed vector, in memory, and asserts the
+seven rows the checker must then report. Nothing on disk is modified. C7 is the
+exception to "mutate": it substitutes a committed, separately signed envelope, so
+the checker meets real signed bytes rather than a run-time patch.
 
-The three composition vectors alone cannot show that the checker's branches are
-live: all three reach EQUIVALENT on action_linkage and differ only at
-principal_linkage. The controls reach NOT_EQUIVALENT, INDETERMINATE, REJECT, and
+The six composition vectors alone cannot show that the checker's branches are
+live: all six reach ACCEPT and EQUIVALENT on the first two rows and differ only
+from principal_linkage onward. The controls reach NOT_EQUIVALENT, three distinct
+causes of INDETERMINATE on action_linkage, REJECT on aae_native, and
 DIVERGENT-from-the-same-inputs-that-otherwise-yield-UNRESOLVED.
 
 Comparison is row by row, like examples/composition-verify.py: every differing
@@ -63,6 +66,15 @@ def apply_mutation(vector: dict, mutation: dict, cv) -> dict:
     elif op == "add_resolution_entry":
         table = v["input"]["join_who"]["principal_resolution"][mutation["side"]]
         table[mutation["key"]] = mutation["value"]
+
+    elif op == "use_envelope":
+        # Substitute a committed, separately signed envelope. The JWS is minted by
+        # tools/build_interop_psea.py with the committed test keys, so the checker
+        # meets real signed bytes rather than a run-time patch.
+        path = os.path.join(INTEROP, "aae-envelopes", mutation["file"])
+        with open(path) as fh:
+            envelope = json.load(fh)
+        v["input"]["secured_aae"] = envelope["secured_aae"]
 
     elif op == "tamper_token_signature":
         header, payload, sig = v["input"]["secondary_artifact"]["token"].split(".")

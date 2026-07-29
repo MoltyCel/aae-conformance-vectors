@@ -57,7 +57,7 @@ or guessed.
 |---|---|---|
 | 1 | AAE native, Section 5 steps 1-9 | `aae_native REJECT` → `action_linkage INDETERMINATE`, `principal_linkage UNRESOLVED`, `evidence_satisfaction NOT_EVALUATED`, `decision REFUSED` / `aae_native_reject` |
 | 2 | Secondary artifact native (ES256 against the enrolled JWK, inside `iat`/`exp`, committing to the recorded digest) | `action_linkage INDETERMINATE`, `principal_linkage UNRESOLVED`, `evidence_satisfaction UNSATISFIED`, `decision REFUSED` / `secondary_native_reject` |
-| 3 | WHAT-join: decode both digests, compare 32 octets | equal → `EQUIVALENT`; different → `NOT_EQUIVALENT` / `join_mismatch`; undecodable → `INDETERMINATE` |
+| 3 | WHAT-join: bind `join_what.aae_digest` to `mandate.action_binding` in the signed envelope, then decode both digests and compare 32 octets | binding absent → `INDETERMINATE` / `aae_binding_absent`; binding differs → `INDETERMINATE` / `aae_binding_mismatch`; digests equal → `EQUIVALENT`; different → `NOT_EQUIVALENT` / `join_mismatch`; undecodable → `INDETERMINATE` / `digest_undecodable` |
 | 4 | WHO-join: resolve both identifiers through the declared table | see below |
 
 Step 4:
@@ -158,12 +158,25 @@ the two canonicalizers diverge, and a vector built under one will fail against a
 peer using the other. Nothing here establishes a general equivalence between PSEA
 canonicalization and jcs-n.
 
-The checker performs no canonicalization at all. It decodes the two digests the
-vector declares and compares 32 octets. The digest is computed once, at build
-time, by `tools/build_interop_psea.py` from the fixture's own cleartext payload,
-and the builder aborts if its result differs from the fixture's recorded
-canonical form. A conforming implementation that recomputes the digest from the
-payload therefore tests something the reference checker does not.
+The checker performs no canonicalization. It decodes declared digests and compares
+32 octets. The digest itself is computed once, at build time, by
+`tools/build_interop_psea.py` from the fixture's own cleartext payload, and the
+builder aborts if its result differs from the fixture's recorded canonical form.
+
+What the checker does test is that each side's declared digest is bound to a
+signed artifact. `join_what.secondary_digest` has to match `psea_payload_hash`
+inside the ES256-verified token, and `join_what.aae_digest` has to match
+`mandate.action_binding.payload_digest` inside the envelope verified at step 1.
+The WHAT-axis is anchored on both sides to bytes someone signed, which closes the
+case where a vector declares a digest unrelated to the artifacts it ships:
+`aae_binding_absent` and `aae_binding_mismatch` on `action_linkage` cover it, and
+controls C6 and C7 exercise both.
+
+Recomputing the digest from `join_what.payload` is a separate and larger step,
+and it is absent. It would make a JCS implementation a checker dependency and
+would test canonicalizer agreement rather than artifact binding. A conforming
+implementation that does recompute therefore tests something this checker does
+not.
 
 ### Principal identity
 
@@ -248,10 +261,11 @@ Section 5. It performs real ES256 verification for step 2 against the enrolled
 JWKs the counterpart fixture publishes.
 
 Result on this set: **6/6**, compared row by row rather than on a single field.
-The five negative controls in `negative-controls.json` reach the row values no
-vector produces — `NOT_EQUIVALENT` and `INDETERMINATE` on `action_linkage`,
-`REJECT` on `aae_native`, and `DIVERGENT` from the same inputs that otherwise
-yield `UNRESOLVED` — and pass 5/5. Vectors and controls are complementary: the
+The seven negative controls in `negative-controls.json` reach the row values no
+vector produces — `NOT_EQUIVALENT` on `action_linkage`, three distinct causes of
+`INDETERMINATE` on it (`secondary_unauthenticated`, `aae_binding_mismatch`,
+`aae_binding_absent`), `REJECT` on `aae_native`, and `DIVERGENT` from the same
+inputs that otherwise yield `UNRESOLVED` — and pass 7/7. Vectors and controls are complementary: the
 vectors cover what a relying party legitimately encounters, the controls cover
 the branches nothing legitimate reaches. See [RESULTS.md](RESULTS.md) for both
 runs and the integrity pins.

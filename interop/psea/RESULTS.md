@@ -179,7 +179,7 @@ modified. The baseline is committed at
     $ python3 tools/run_negative_controls.py
     stages: aae_native | action_linkage | principal_linkage | evidence_satisfaction | decision | admission | outcome
 
-    PASS  C1  One octet of the AAE-side digest flipped
+    PASS  C1  One octet of the secondary-side digest flipped
             ACCEPT | NOT_EQUIVALENT(join_mismatch) | SAME | UNSATISFIED(evidence_covers_a_different_action) | REFUSED(join_mismatch) | NONE | NONE
     PASS  C2  XP-3's principal given a table entry resolving to a different principal
             ACCEPT | EQUIVALENT | DIVERGENT(principal_divergence) | UNSATISFIED(principal_divergence) | REFUSED(principal_divergence) | NONE | NONE
@@ -189,13 +189,25 @@ modified. The baseline is committed at
             REJECT(expired_not_after) | INDETERMINATE(aae_not_admitted) | UNRESOLVED(aae_not_admitted) | NOT_EVALUATED(aae_not_admitted) | REFUSED(aae_native_reject) | NONE | NONE
     PASS  C5  Another instant inside both validity windows
             ACCEPT | EQUIVALENT | SAME | SATISFIED | AUTHORIZED | NONE | NONE
+    PASS  C6  Declared aae_digest differs from the signed action_binding
+            ACCEPT | INDETERMINATE(aae_binding_mismatch) | UNRESOLVED(action_linkage_unestablished) | NOT_EVALUATED(action_linkage_unestablished) | REFUSED(action_linkage_unestablished) | NONE | NONE
+    PASS  C7  Signed envelope carries no action_binding
+            ACCEPT | INDETERMINATE(aae_binding_absent) | UNRESOLVED(action_linkage_unestablished) | NOT_EVALUATED(action_linkage_unestablished) | REFUSED(action_linkage_unestablished) | NONE | NONE
 
-    5/5 negative controls passed (row-by-row)
+    7/7 negative controls passed (row-by-row)
 
 Between them the controls reach every row value no vector produces:
-`NOT_EQUIVALENT` and `INDETERMINATE` on `action_linkage`, `DIVERGENT` on
-`principal_linkage`, `REJECT` on `aae_native`, and `UNSATISFIED` on
-`evidence_satisfaction` from three different causes.
+`NOT_EQUIVALENT` on `action_linkage` and three distinct causes of `INDETERMINATE`
+on it, `DIVERGENT` on `principal_linkage`, `REJECT` on `aae_native`, and
+`UNSATISFIED` on `evidence_satisfaction` from three different causes.
+
+**C6 and C7 anchor the WHAT-axis to signed bytes.** Before the envelope-binding
+check existed, C6's flip produced `NOT_EQUIVALENT`, which reported a
+vector-internal inconsistency as a disagreement between two profiles. C6 now
+reads `aae_binding_mismatch` and C7, using the separately signed E4, reads
+`aae_binding_absent`. C1 was retargeted from `aae_digest` to `secondary_digest`
+for that reason: with the AAE side consistent with its envelope, the two joined
+digests still differ and `NOT_EQUIVALENT` stays reachable.
 
 **C2 is the load-bearing one.** It takes XP-3 and adds a single table entry —
 nothing else changes, same artifacts, same action digest — and the result moves
@@ -203,10 +215,13 @@ from `UNRESOLVED` / `NOT_EVALUATED` to `DIVERGENT` / `UNSATISFIED` while both
 still read `REFUSED` at `decision`. Two conditions, two locations in the result,
 one decision value. That is the separation a single verdict column cannot carry.
 
-**C1 against C3** shows the two negative `action_linkage` values are not
-interchangeable. C1 flips one octet: the two sides demonstrably mean different
-actions, so `NOT_EQUIVALENT`. C3 breaks the signature: the artifact commits to
-nothing that can be relied on, so `INDETERMINATE`. C1 also confirms the octet
+**C1 against C3, C6 and C7** shows the negative `action_linkage` values are not
+interchangeable. C1 flips one octet of the secondary declaration: the two sides
+demonstrably mean different actions, so `NOT_EQUIVALENT`. C3 breaks the PSEA
+signature, C6 desynchronizes the AAE declaration from its envelope, C7 removes
+the envelope's commitment entirely — in all three nothing can be established
+about which action is meant, so `INDETERMINATE`, with the reason naming which of
+the three occurred. C1 also confirms the octet
 comparison is real — a single flipped bit in one encoding is caught, which a
 lenient string or prefix comparison would miss.
 

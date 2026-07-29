@@ -111,8 +111,15 @@ def load_fixture() -> dict:
 
 
 def build_envelope(vc_id: str, issuer: str, subject: str, principal_did: str,
-                   join_b64url: str) -> dict:
-    return {
+                   join_b64url: str, include_action_binding: bool = True) -> dict:
+    """Build an AAE for the cross-run.
+
+    include_action_binding=False omits mandate.action_binding entirely. The result
+    is still a well-formed AAE - action_binding is this cross-run's additive field,
+    not something the draft requires - but a composition checker cannot anchor the
+    declared action digest to signed bytes. E4 exists for exactly that case.
+    """
+    envelope = {
         "@context": CONTEXT,
         "type": VC_TYPE,
         "id": vc_id,
@@ -126,11 +133,6 @@ def build_envelope(vc_id: str, issuer: str, subject: str, principal_did: str,
                     "purpose": "PSEA/AAE interop cross-run - single outbound transfer",
                     "scope": "payments-vertical",
                     "principal_did": principal_did,
-                    "action_binding": {
-                        "alg": "sha-256",
-                        "canonicalization": "JCS (RFC 8785)",
-                        "payload_digest": "sha-256:" + join_b64url,
-                    },
                 },
                 "constraints": {
                     # Integer minor units, no float / decimal / exponent.
@@ -150,6 +152,13 @@ def build_envelope(vc_id: str, issuer: str, subject: str, principal_did: str,
             },
         },
     }
+    if include_action_binding:
+        envelope["credentialSubject"]["aae"]["mandate"]["action_binding"] = {
+            "alg": "sha-256",
+            "canonicalization": "JCS (RFC 8785)",
+            "payload_digest": "sha-256:" + join_b64url,
+        }
+    return envelope
 
 
 def secondary_artifact(fix: dict, artifact_id: str) -> dict:
@@ -255,6 +264,14 @@ def main() -> int:
     jws2 = sign_jws(e2, load_key("agent-b-key.json"))
     jws6 = sign_jws(e6, load_key("agent-a-key.json"))
 
+    # E4 carries no mandate.action_binding. Not paired with any vector: negative
+    # control C7 substitutes it for E1 so the checker meets a signed envelope that
+    # makes no commitment to the action digest.
+    e4 = build_envelope("urn:uuid:00000104-0000-4000-8000-0000000000d4",
+                        AGENT_A, AGENT_001, PRINCIPAL_A_DID, join_b64url,
+                        include_action_binding=False)
+    jws4 = sign_jws(e4, load_key("agent-a-key.json"))
+
     os.makedirs(os.path.join(INTEROP, "aae-envelopes"), exist_ok=True)
     os.makedirs(os.path.join(INTEROP, "vectors"), exist_ok=True)
 
@@ -263,6 +280,10 @@ def main() -> int:
          "AAE grant naming principal-A. Used by XP-1 and XP-2."),
         ("E2-unresolved", jws2, e2,
          "AAE grant naming a principal with no entry in the resolution table. Used by XP-3."),
+        ("E4-no-action-binding", jws4, e4,
+         "AAE grant with mandate.action_binding omitted. Well-formed as an AAE; a "
+         "composition checker cannot anchor the declared action digest to it. Used by "
+         "negative control C7, paired with no vector."),
         ("E3-principal-A-alias", jws6, e6,
          "AAE grant naming a second identifier that the enrolled table maps onto the same "
          "canonical principal as E1. Identical to E1 apart from id and principal_did. Used by XP-6."),

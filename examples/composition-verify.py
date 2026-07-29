@@ -44,9 +44,14 @@ omitted or guessed.
        failure -> the artifact's commitments are untrusted: action_linkage
        INDETERMINATE, principal_linkage UNRESOLVED (its kid claim is
        unauthenticated), evidence UNSATISFIED, decision REFUSED.
-  3. WHAT-join. Both digests are decoded to raw octets and compared as octets.
-       equal -> EQUIVALENT; different -> NOT_EQUIVALENT; undecodable ->
-       INDETERMINATE.
+  3. WHAT-join. The AAE side's own commitment is checked first: the declared
+     join_what.aae_digest must equal mandate.action_binding.payload_digest from
+     the envelope authenticated in step 1. Absent -> INDETERMINATE
+     (aae_binding_absent); different -> INDETERMINATE (aae_binding_mismatch).
+     Only then are both declared digests decoded to raw octets and compared as
+     octets: equal -> EQUIVALENT; different -> NOT_EQUIVALENT; undecodable ->
+     INDETERMINATE. No canonicalization runs here and the payload is never
+     rehashed; what is tested is the binding of the digest to the envelope.
   4. WHO-join. Both identifiers are resolved through the vector's declared
      principal_resolution table.
        both resolve, equal      -> SAME
@@ -266,32 +271,70 @@ def compose(vector: dict, fixture: dict, aae_verifier) -> dict:
             **tail,
         }, "trace": trace}
 
-    # --- 3. WHAT-join: 32-octet comparison ----------------------------------------
+    # --- 3. WHAT-join: bind the digest to the signed envelope, then compare octets -
     join_what = vector["input"]["join_what"]
-    try:
-        aae_octets = decode_digest(join_what["aae_digest"])
-        secondary_octets = decode_digest(join_what["secondary_digest"])
-    except Exception as exc:  # noqa: BLE001 - an undecodable digest is not a mismatch
-        trace.append(f"3 action_linkage=INDETERMINATE ({exc})")
+    aae_payload = json.loads(b64url_decode(vector["input"]["secured_aae"].split(".")[1]))
+    aae_mandate = aae_payload["credentialSubject"]["aae"]["mandate"]
+
+    def unestablished(reason: str) -> dict:
+        """Step 3 could not establish the linkage. Nothing downstream may claim a
+        fact that depends on knowing which action the artifacts commit to."""
         return {"stages": {
             "aae_native": aae_row,
-            "action_linkage": _row("INDETERMINATE", "digest_undecodable"),
+            "action_linkage": _row("INDETERMINATE", reason),
             "principal_linkage": _row("UNRESOLVED", "action_linkage_unestablished"),
             "evidence_satisfaction": _row("NOT_EVALUATED", "action_linkage_unestablished"),
             "decision": _row("REFUSED", "action_linkage_unestablished"),
             **tail,
         }, "trace": trace}
 
+    try:
+        aae_octets = decode_digest(join_what["aae_digest"])
+        secondary_octets = decode_digest(join_what["secondary_digest"])
+    except Exception as exc:  # noqa: BLE001 - an undecodable digest is not a mismatch
+        trace.append(f"3 action_linkage=INDETERMINATE ({exc})")
+        return unestablished("digest_undecodable")
+
+    # The AAE side must itself commit to the digest the vector declares for it.
+    # Step 1 authenticated the envelope, so mandate.action_binding is signed bytes;
+    # anchoring join_what.aae_digest to it removes the gap where a vector could
+    # declare a digest unrelated to the envelope it ships. This is the mirror of
+    # the check verify_psea_proof already performs on psea_payload_hash.
+    #
+    # Nothing is recanonicalized here. The payload is not rehashed, and no JCS
+    # implementation is consulted: only the binding of the declared digest to the
+    # signed envelope is tested. Recomputing the digest from join_what.payload
+    # remains outside this checker.
+    binding = aae_mandate.get("action_binding")
+    if not isinstance(binding, dict) or not isinstance(binding.get("payload_digest"), str):
+        trace.append("3 action_linkage=INDETERMINATE (mandate carries no action_binding)")
+        return unestablished("aae_binding_absent")
+
+    signed = binding["payload_digest"]
+    if signed.startswith("sha-256:"):
+        signed = signed[len("sha-256:"):]
+    try:
+        signed_octets = b64url_decode(signed)
+    except Exception:  # noqa: BLE001 - folded into mismatch, see below
+        signed_octets = b""
+    # An undecodable, wrong-length or wrong-algorithm binding is folded into
+    # mismatch: each is a case of the envelope not committing to the declared
+    # digest, and splitting them would multiply reasons without adding a fact.
+    if binding.get("alg") != "sha-256" or len(signed_octets) != 32 or signed_octets != aae_octets:
+        trace.append(f"3 action_linkage=INDETERMINATE (signed {signed_octets.hex() or '-'} "
+                     f"!= declared {aae_octets.hex()})")
+        return unestablished("aae_binding_mismatch")
+
     equivalent = aae_octets == secondary_octets
-    trace.append(f"3 action_linkage aae={aae_octets.hex()} secondary={secondary_octets.hex()}")
+    trace.append(f"3 action_linkage signed=declared={aae_octets.hex()} "
+                 f"secondary={secondary_octets.hex()}")
     action_row = _row("EQUIVALENT") if equivalent else _row("NOT_EQUIVALENT", "join_mismatch")
 
     # --- 4. WHO-join: declared principal resolution --------------------------------
     # Computed independently of step 3: the principal identifiers do not depend on
     # which action the artifacts commit to, and a reader is owed both facts.
     table = vector["input"]["join_who"]["principal_resolution"]
-    aae_payload = json.loads(b64url_decode(vector["input"]["secured_aae"].split(".")[1]))
-    aae_principal_did = aae_payload["credentialSubject"]["aae"]["mandate"].get("principal_did")
+    aae_principal_did = aae_mandate.get("principal_did")
 
     aae_canonical = resolve(aae_principal_did, table["aae"])
     secondary_canonical = resolve(artifact["enrollment_binding"], table["secondary"])
