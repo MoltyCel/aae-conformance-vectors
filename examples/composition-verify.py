@@ -50,8 +50,10 @@ omitted or guessed.
      (aae_binding_absent); different -> INDETERMINATE (aae_binding_mismatch).
      Only then are both declared digests decoded to raw octets and compared as
      octets: equal -> EQUIVALENT; different -> NOT_EQUIVALENT; undecodable ->
-     INDETERMINATE. No canonicalization runs here and the payload is never
-     rehashed; what is tested is the binding of the digest to the envelope.
+     INDETERMINATE. The declared digest is then recomputed from
+     join_what.payload by RFC 8785 canonicalization and SHA-256; a payload whose
+     digest differs -> NOT_EQUIVALENT (payload_digest_mismatch), a payload
+     outside the I-JSON subset -> INDETERMINATE (payload_not_i_json).
   4. WHO-join. Both identifiers are resolved through the vector's declared
      principal_resolution table.
        both resolve, equal      -> SAME
@@ -76,11 +78,17 @@ from __future__ import annotations
 
 import base64
 import glob
+import hashlib
 import importlib.util
 import json
 import os
 import sys
 from datetime import datetime, timezone
+
+# Hard import on purpose. A fallback to json.dumps(sort_keys=True) would let the
+# checker verify a digest under a canonicalization other than the one it was
+# built with, and agree by accident on the payloads where the two coincide.
+import jcs
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes
@@ -215,6 +223,75 @@ def resolve(identifier: str, table: dict) -> str | None:
     return table.get(identifier)
 
 
+MAX_SAFE_INTEGER = 2 ** 53 - 1
+
+
+def valid_unicode_scalars(text: str) -> bool:
+    """Reject lone surrogates. A Python str parsed from JSON can hold one; RFC 8785
+    canonicalizes Unicode scalar values, and a lone surrogate is not one."""
+    index = 0
+    while index < len(text):
+        code = ord(text[index])
+        if 0xD800 <= code <= 0xDBFF:
+            if index + 1 >= len(text) or not (0xDC00 <= ord(text[index + 1]) <= 0xDFFF):
+                return False
+            index += 2
+            continue
+        if 0xDC00 <= code <= 0xDFFF:
+            return False
+        index += 1
+    return True
+
+
+def check_i_json(value, path: str = "payload", seen: set | None = None) -> None:
+    """Gate the payload to the I-JSON subset this exchange uses, mirroring the
+    counterpart implementation's canonicalize() in reperform.mjs.
+
+    This is not a general RFC 8785 conformance check and does not claim to be. It
+    admits exactly the subset both sides agreed the exchange stays inside:
+    integers within the safe range, strings and member names over Unicode scalars,
+    no cycles. Anything else is refused here rather than canonicalized into a
+    digest whose reproducibility across implementations is unknown.
+    """
+    seen = set() if seen is None else seen
+    if value is None or isinstance(value, bool):
+        return
+    if isinstance(value, str):
+        if not valid_unicode_scalars(value):
+            raise ValueError(f"{path}: invalid Unicode scalar")
+        return
+    if isinstance(value, int):
+        if abs(value) > MAX_SAFE_INTEGER:
+            raise ValueError(f"{path}: number outside the safe integer range")
+        return
+    if isinstance(value, float):
+        raise ValueError(f"{path}: non-integer number")
+    if isinstance(value, (dict, list)):
+        if id(value) in seen:
+            raise ValueError(f"{path}: cyclic JSON")
+        seen.add(id(value))
+        try:
+            if isinstance(value, list):
+                for i, item in enumerate(value):
+                    check_i_json(item, f"{path}[{i}]", seen)
+            else:
+                for key, item in value.items():
+                    if not isinstance(key, str) or not valid_unicode_scalars(key):
+                        raise ValueError(f"{path}: invalid member name")
+                    check_i_json(item, f"{path}.{key}", seen)
+        finally:
+            seen.discard(id(value))
+        return
+    raise ValueError(f"{path}: value is not JSON")
+
+
+def recompute_action_digest(payload) -> bytes:
+    """SHA-256 over the RFC 8785 canonical form of the payload. Raises ValueError
+    if the payload leaves the I-JSON subset."""
+    check_i_json(payload)
+    return hashlib.sha256(jcs.canonicalize(payload)).digest()
+
+
 def _row(value: str, reason: str | None = None, **extra) -> dict:
     row = {"value": value}
     if reason is not None:
@@ -301,10 +378,8 @@ def compose(vector: dict, fixture: dict, aae_verifier) -> dict:
     # declare a digest unrelated to the envelope it ships. This is the mirror of
     # the check verify_psea_proof already performs on psea_payload_hash.
     #
-    # Nothing is recanonicalized here. The payload is not rehashed, and no JCS
-    # implementation is consulted: only the binding of the declared digest to the
-    # signed envelope is tested. Recomputing the digest from join_what.payload
-    # remains outside this checker.
+    # This step tests the binding only. The payload is recanonicalized and rehashed
+    # further down, after the binding holds.
     binding = aae_mandate.get("action_binding")
     if not isinstance(binding, dict) or not isinstance(binding.get("payload_digest"), str):
         trace.append("3 action_linkage=INDETERMINATE (mandate carries no action_binding)")
@@ -325,10 +400,30 @@ def compose(vector: dict, fixture: dict, aae_verifier) -> dict:
                      f"!= declared {aae_octets.hex()})")
         return unestablished("aae_binding_mismatch")
 
-    equivalent = aae_octets == secondary_octets
-    trace.append(f"3 action_linkage signed=declared={aae_octets.hex()} "
-                 f"secondary={secondary_octets.hex()}")
-    action_row = _row("EQUIVALENT") if equivalent else _row("NOT_EQUIVALENT", "join_mismatch")
+    # The declared digest is bound to the envelope. Now check it is the digest of
+    # the payload the vector carries, by recanonicalizing and rehashing. This runs
+    # AFTER the binding check on purpose: a declared digest that matches neither
+    # the envelope nor the payload is first of all not bound to the envelope, and
+    # reporting it as a payload mismatch would name the second symptom of the same
+    # desynchronization.
+    try:
+        recomputed = recompute_action_digest(join_what["payload"])
+    except ValueError as exc:
+        trace.append(f"3 action_linkage=INDETERMINATE (payload outside I-JSON: {exc})")
+        return unestablished("payload_not_i_json")
+
+    if recomputed != aae_octets:
+        trace.append(f"3 action_linkage=NOT_EQUIVALENT (recomputed {recomputed.hex()} "
+                     f"!= declared {aae_octets.hex()})")
+        equivalent = False
+        linkage_reason = "payload_digest_mismatch"
+        action_row = _row("NOT_EQUIVALENT", linkage_reason)
+    else:
+        equivalent = aae_octets == secondary_octets
+        trace.append(f"3 action_linkage recomputed=signed=declared={aae_octets.hex()} "
+                     f"secondary={secondary_octets.hex()}")
+        linkage_reason = None if equivalent else "join_mismatch"
+        action_row = _row("EQUIVALENT") if equivalent else _row("NOT_EQUIVALENT", linkage_reason)
 
     # --- 4. WHO-join: declared principal resolution --------------------------------
     # Computed independently of step 3: the principal identifiers do not depend on
@@ -348,9 +443,15 @@ def compose(vector: dict, fixture: dict, aae_verifier) -> dict:
         decision_reason = "unresolved_binding"
     elif aae_canonical == secondary_canonical:
         principal_row = _row("SAME")
-        evidence_row = (_row("SATISFIED") if equivalent
-                        else _row("UNSATISFIED", "evidence_covers_a_different_action"))
-        decision_reason = None if equivalent else "join_mismatch"
+        if equivalent:
+            evidence_row = _row("SATISFIED")
+        elif linkage_reason == "payload_digest_mismatch":
+            # The AAE's own declaration disagrees with its payload, so nothing is
+            # known about which action the evidence would have to cover.
+            evidence_row = _row("UNSATISFIED", "payload_digest_mismatch")
+        else:
+            evidence_row = _row("UNSATISFIED", "evidence_covers_a_different_action")
+        decision_reason = linkage_reason
     else:
         principal_row = _row("DIVERGENT", "principal_divergence")
         evidence_row = _row("UNSATISFIED", "principal_divergence")

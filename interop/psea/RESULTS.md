@@ -194,7 +194,12 @@ modified. The baseline is committed at
     PASS  C7  Signed envelope carries no action_binding
             ACCEPT | INDETERMINATE(aae_binding_absent) | UNRESOLVED(action_linkage_unestablished) | NOT_EVALUATED(action_linkage_unestablished) | REFUSED(action_linkage_unestablished) | NONE | NONE
 
-    7/7 negative controls passed (row-by-row)
+    PASS  C8  Payload does not hash to the declared action digest
+            ACCEPT | NOT_EQUIVALENT(payload_digest_mismatch) | SAME | UNSATISFIED(payload_digest_mismatch) | REFUSED(payload_digest_mismatch) | NONE | NONE
+    PASS  C9  Payload leaves the I-JSON subset
+            ACCEPT | INDETERMINATE(payload_not_i_json) | UNRESOLVED(action_linkage_unestablished) | NOT_EVALUATED(action_linkage_unestablished) | REFUSED(action_linkage_unestablished) | NONE | NONE
+
+    9/9 negative controls passed (row-by-row)
 
 Between them the controls reach every row value no vector produces:
 `NOT_EQUIVALENT` on `action_linkage` and three distinct causes of `INDETERMINATE`

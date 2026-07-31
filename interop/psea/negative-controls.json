@@ -287,6 +287,87 @@
           }
         }
       }
+    },
+    {
+      "id": "C8",
+      "name": "Payload does not hash to the declared action digest",
+      "base_vector": "xp-1-aligned-principal.json",
+      "mutation": {
+        "op": "set_payload_member",
+        "key": "amount_minor",
+        "value": 250001
+      },
+      "why": "One member of join_what.payload is changed while both declared digests and the signed action_binding stay as they were. The binding check therefore passes - the envelope still commits to the digest the vector declares - and the recomputation is what catches it: canonicalizing the payload and hashing it yields other octets. This is the branch the checker gained by recanonicalizing rather than trusting the declaration, and no vector exercises it. Distinct from C6, where the declaration and the envelope disagree and nothing about the action is established at all.",
+      "expected": {
+        "stages": {
+          "aae_native": {
+            "value": "ACCEPT",
+            "verification_step": 7
+          },
+          "action_linkage": {
+            "value": "NOT_EQUIVALENT",
+            "reason": "payload_digest_mismatch"
+          },
+          "principal_linkage": {
+            "value": "SAME"
+          },
+          "evidence_satisfaction": {
+            "value": "UNSATISFIED",
+            "reason": "payload_digest_mismatch"
+          },
+          "decision": {
+            "value": "REFUSED",
+            "reason": "payload_digest_mismatch"
+          },
+          "admission": {
+            "value": "NONE"
+          },
+          "outcome": {
+            "value": "NONE"
+          }
+        }
+      }
+    },
+    {
+      "id": "C9",
+      "name": "Payload leaves the I-JSON subset",
+      "base_vector": "xp-1-aligned-principal.json",
+      "mutation": {
+        "op": "set_payload_member",
+        "key": "amount_minor",
+        "value": 2500.5
+      },
+      "why": "A non-integer number in the action payload. draft-yossif-psea-02 Section 2.5 excludes it, and the canonicalization guarantee does not extend to it: two implementations may serialize the same float differently and derive different digests from the same document. The checker refuses to canonicalize rather than produce a digest whose reproducibility is unknown, so the linkage is unestablished rather than negative. The counterpart implementation's canonicalize() rejects the same input for the same reason.",
+      "expected": {
+        "stages": {
+          "aae_native": {
+            "value": "ACCEPT",
+            "verification_step": 7
+          },
+          "action_linkage": {
+            "value": "INDETERMINATE",
+            "reason": "payload_not_i_json"
+          },
+          "principal_linkage": {
+            "value": "UNRESOLVED",
+            "reason": "action_linkage_unestablished"
+          },
+          "evidence_satisfaction": {
+            "value": "NOT_EVALUATED",
+            "reason": "action_linkage_unestablished"
+          },
+          "decision": {
+            "value": "REFUSED",
+            "reason": "action_linkage_unestablished"
+          },
+          "admission": {
+            "value": "NONE"
+          },
+          "outcome": {
+            "value": "NONE"
+          }
+        }
+      }
     }
   ]
 }

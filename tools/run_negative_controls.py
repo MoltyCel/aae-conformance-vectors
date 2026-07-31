@@ -67,6 +67,12 @@ def apply_mutation(vector: dict, mutation: dict, cv) -> dict:
         table = v["input"]["join_who"]["principal_resolution"][mutation["side"]]
         table[mutation["key"]] = mutation["value"]
 
+    elif op == "set_payload_member":
+        # Change one member of join_what.payload. The declared aae_digest and the
+        # signed action_binding stay in step, so the binding check passes and the
+        # recomputation is what catches the payload.
+        v["input"]["join_what"]["payload"][mutation["key"]] = mutation["value"]
+
     elif op == "use_envelope":
         # Substitute a committed, separately signed envelope. The JWS is minted by
         # tools/build_interop_psea.py with the committed test keys, so the checker
