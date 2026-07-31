@@ -227,6 +227,11 @@
       "required": ["stages"],
       "additionalProperties": false,
       "properties": {
+        "custody": {
+          "type": "object",
+          "description": "Optional sibling of `stages`, for a profile that tracks admission custody across attempts - a reservation identifier, an execution right, a prior admission. Deliberately left without required members or a fixed shape: no vector in this set exercises custody, so prescribing its structure would fix a contract this side has not tested. A profile that does track it records it here rather than overloading the admission row, which stays a statement about the decision at hand.",
+          "additionalProperties": true
+        },
         "stages": {
           "type": "object",
           "description": "Seven ordered stages, framework-neutral. Each is a row carrying a `value` from its own closed enum and an optional `reason`. The enums do not overlap across stages: INDETERMINATE on `action_linkage` (the linkage could not be established) and INDETERMINATE on `outcome` (what happened could not be established) are different facts about different stages and cannot be collapsed into one another, nor into UNRESOLVED on `principal_linkage`.",
@@ -447,7 +452,7 @@
           }
         },
         {
-          "description": "A refusal admits nothing and executes nothing ON THIS DECISION. `outcome` is therefore NONE without exception. `admission` may report a custody state that a previous decision established: an admission already spent (CONSUMED) or still held (RESERVED) is the reason some refusals happen, and a row forced to NONE would deny the very state the refusal rests on. INVOKED and DISPATCH_PENDING stay excluded, since both assert a handover made on this decision. `reason` remains open, so already_consumed belongs on the admission row where the condition was observed.",
+          "description": "A refusal admits nothing and executes nothing. Both rows read NONE without exception, because both describe what THIS decision did, and a decision that refused did neither. An earlier decision's custody state is a different fact and belongs beside the rows rather than inside them: `expected.custody` is available for it, and a profile that tracks a spent admission records the prior state there while `admission` stays NONE with `already_consumed` as its reason. An earlier draft of this constraint admitted CONSUMED and RESERVED here on the argument that NONE would deny the state a refusal rests on; the counterpart implementation models the same case with the row at NONE and the prior admission named alongside, which keeps the row about this decision only.",
           "if": {
             "properties": {
               "stages": {
@@ -459,7 +464,7 @@
             "properties": {
               "stages": {
                 "properties": {
-                  "admission": { "properties": { "value": { "enum": ["NONE", "CONSUMED", "RESERVED"] } } },
+                  "admission": { "properties": { "value": { "const": "NONE" } } },
                   "outcome": { "properties": { "value": { "const": "NONE" } } }
                 }
               }
