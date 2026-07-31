@@ -467,6 +467,48 @@
           }
         },
         {
+          "description": "A non-NONE outcome requires a qualifying admission. Reporting that something executed, failed, or came back unknown presupposes that an admission was spent or handed over; RESERVED is held rather than spent, and NONE is nothing at all, so neither can carry an outcome. Constraint 7 states the same rule from the admission side and stays, because a reader consulting the admission row is owed the answer there too.",
+          "if": {
+            "properties": {
+              "stages": {
+                "properties": {
+                  "outcome": { "properties": { "value": { "enum": ["EXECUTED", "FAILED", "INDETERMINATE"] } } }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "stages": {
+                "properties": {
+                  "admission": { "properties": { "value": { "enum": ["CONSUMED", "DISPATCH_PENDING", "INVOKED"] } } }
+                }
+              }
+            }
+          }
+        },
+        {
+          "description": "An INDETERMINATE outcome carries a reason. This is the row's hardest case - an admission was spent and what followed cannot be established - and a bare INDETERMINATE leaves a reader unable to tell a lost provider response from an unread one. The reason set stays open; only its presence is required.",
+          "if": {
+            "properties": {
+              "stages": {
+                "properties": {
+                  "outcome": { "properties": { "value": { "const": "INDETERMINATE" } } }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "stages": {
+                "properties": {
+                  "outcome": { "required": ["reason"], "properties": { "reason": { "type": "string", "minLength": 1 } } }
+                }
+              }
+            }
+          }
+        },
+        {
           "description": "Nothing may be reported as executed without an admission.",
           "if": {
             "properties": {
