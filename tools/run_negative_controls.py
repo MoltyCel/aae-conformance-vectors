@@ -26,6 +26,10 @@ import json
 import os
 import sys
 
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, ".."))
 INTEROP = os.path.join(ROOT, "interop", "psea")
@@ -81,6 +85,41 @@ def apply_mutation(vector: dict, mutation: dict, cv) -> dict:
         with open(path) as fh:
             envelope = json.load(fh)
         v["input"]["secured_aae"] = envelope["secured_aae"]
+
+    elif op == "resign_token_with_key":
+        # Re-sign the PSEA token with a key that is not enrolled, and embed that
+        # key's public half in the payload, while leaving the protected header's
+        # kid pointing at the enrolled key. A verifier that took key material from
+        # the artifact would accept; one that resolves kid against the enrolled
+        # record rejects on the signature.
+        #
+        # Signing is RFC 6979 deterministic, so the forged token is byte-identical
+        # on every run and a second implementation can recompute it. Nothing is
+        # committed for this control beyond the key itself.
+        with open(os.path.join(ROOT, "testkeys", mutation["key"])) as fh:
+            attacker = json.load(fh)["jwk"]
+
+        def b64u(raw: bytes) -> str:
+            return base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
+
+        def b64u_dec(text: str) -> bytes:
+            return base64.urlsafe_b64decode(text + "=" * (-len(text) % 4))
+
+        header_b64, payload_b64, _ = v["input"]["secondary_artifact"]["token"].split(".")
+        claims = json.loads(b64u_dec(payload_b64))
+        claims[mutation.get("embed_as", "cnf")] = {
+            "jwk": {k: attacker[k] for k in ("kty", "crv", "x", "y")}
+        }
+        forged_payload = b64u(json.dumps(claims, separators=(",", ":")).encode("utf-8"))
+
+        private = ec.derive_private_key(
+            int.from_bytes(b64u_dec(attacker["d"]), "big"), ec.SECP256R1())
+        der = private.sign(f"{header_b64}.{forged_payload}".encode("ascii"),
+                           ec.ECDSA(hashes.SHA256(), deterministic_signing=True))
+        r, s_ = decode_dss_signature(der)
+        signature = b64u(r.to_bytes(32, "big") + s_.to_bytes(32, "big"))
+        v["input"]["secondary_artifact"]["token"] = (
+            f"{header_b64}.{forged_payload}.{signature}")
 
     elif op == "tamper_token_signature":
         header, payload, sig = v["input"]["secondary_artifact"]["token"].split(".")

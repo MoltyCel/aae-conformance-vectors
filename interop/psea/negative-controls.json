@@ -368,6 +368,48 @@
           }
         }
       }
+    },
+    {
+      "id": "C10",
+      "name": "Token carries its own key material and claims an enrolled kid",
+      "base_vector": "xp-1-aligned-principal.json",
+      "mutation": {
+        "op": "resign_token_with_key",
+        "key": "psea-attacker-key.json",
+        "embed_as": "cnf"
+      },
+      "why": "A witness, not a fix. The PSEA token is re-signed with testkeys/psea-attacker-key.json, a key enrolled nowhere, and that key's public half is embedded in the payload as cnf.jwk while the protected header keeps kid psea-key-A. A verifier that took key material from the artifact would accept this token. The checker resolves kid against the fixture's enrolled_keys and never reads a key out of the token, so the signature fails against the enrolled key.\n\nWhat the result shows and does not show: the refusal is invalid_signature, the same code an ordinary broken signature produces. There is no separate reason naming the embedded key, because the checker never looks at it. The evidence that the enrolled key was used is the contrast with the unmutated run, where the same token structure verifies. Read alone, this row is indistinguishable from C3.\n\nSigning is RFC 6979 deterministic, so the forged token is byte-identical on every run. PSEA Section 6.3 makes enrollment the root of trust; this class is not in Section 5.2 of the composition draft and was contributed by the counterpart implementation as its N16.",
+      "status": "proposed - not yet recomputed by a second implementation",
+      "expected": {
+        "stages": {
+          "aae_native": {
+            "value": "ACCEPT",
+            "verification_step": 7
+          },
+          "action_linkage": {
+            "value": "INDETERMINATE",
+            "reason": "secondary_unauthenticated"
+          },
+          "principal_linkage": {
+            "value": "UNRESOLVED",
+            "reason": "secondary_unauthenticated"
+          },
+          "evidence_satisfaction": {
+            "value": "UNSATISFIED",
+            "reason": "invalid_signature"
+          },
+          "decision": {
+            "value": "REFUSED",
+            "reason": "secondary_native_reject"
+          },
+          "admission": {
+            "value": "NONE"
+          },
+          "outcome": {
+            "value": "NONE"
+          }
+        }
+      }
     }
   ]
 }

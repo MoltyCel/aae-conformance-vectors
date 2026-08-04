@@ -318,7 +318,7 @@ not re-encoded, not re-signed, not normalized.
 pip install cryptography jsonschema jcs
 python3 tools/validate_interop_schema.py     # 6/6 valid against the schema
 python3 examples/composition-verify.py       # 6/6 passed, row by row
-python3 tools/run_negative_controls.py       # 9/9 passed, row by row
+python3 tools/run_negative_controls.py       # 10/10 passed, row by row
 python3 tools/build_interop_psea.py          # rebuild; output must be byte-identical
 ```
 
@@ -353,7 +353,7 @@ The six vectors alone cannot show the checker's branches are live — all six
 reach `ACCEPT` and `EQUIVALENT` on the first two rows and differ only from
 `principal_linkage` onward, so `NOT_EQUIVALENT`, `INDETERMINATE` and `REJECT`
 are never produced by any of them.
-[`negative-controls.json`](negative-controls.json) pins nine controls. Each
+[`negative-controls.json`](negative-controls.json) pins ten controls. Each
 changes one input of a committed vector and asserts the seven rows that must
 follow; C7 substitutes a committed, separately signed envelope rather than
 patching one. `tools/run_negative_controls.py` runs them, and CI runs it too.
@@ -369,6 +369,7 @@ patching one. `tools/run_negative_controls.py` runs them, and CI runs it too.
 | C7 | signed envelope (E4) carries no `action_binding` | `action_linkage INDETERMINATE` / `aae_binding_absent` |
 | C8 | payload changed, declared digest and envelope left in step | `action_linkage NOT_EQUIVALENT` / `payload_digest_mismatch` |
 | C9 | non-integer number in the payload | `action_linkage INDETERMINATE` / `payload_not_i_json` |
+| C10 | token re-signed with a non-enrolled key that it also embeds | `evidence_satisfaction UNSATISFIED` / `invalid_signature` — a witness to the enrolled-key path, see RESULTS.md |
 
 C2 is the load-bearing one: same artifacts, same digest, one added table entry,
 and the result moves from `UNRESOLVED`/`NOT_EVALUATED` to

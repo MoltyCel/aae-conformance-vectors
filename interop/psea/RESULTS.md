@@ -9,6 +9,20 @@ Results are reported as seven staged rows rather than a single composition
 verdict. See [CONFORMANCE.md](CONFORMANCE.md) for the row set, the evaluation
 order, and the collapse to a coarser three-way view.
 
+## Result history
+
+The digest of this file changes whenever the recorded run changes. A file cannot
+contain its own digest, so every value in this table is a past one by
+construction; the current value is whatever the file hashes to now.
+
+| Vectors | Controls | Recorded at | Published |
+|---|---|---|---|
+| 6 | 9 | commit `662c93f` | AAE side re-performed by EMILIA Protocol at `e8c00e5` |
+| 6 | 10 | this state — C10 added, uncommitted | — |
+
+No vector or pre-existing control changed verdict or reason between the two
+states. The suite grew; nothing in it moved.
+
 ## Environment
 
     python        3.9.6
@@ -199,7 +213,10 @@ modified. The baseline is committed at
     PASS  C9  Payload leaves the I-JSON subset
             ACCEPT | INDETERMINATE(payload_not_i_json) | UNRESOLVED(action_linkage_unestablished) | NOT_EVALUATED(action_linkage_unestablished) | REFUSED(action_linkage_unestablished) | NONE | NONE
 
-    9/9 negative controls passed (row-by-row)
+    PASS  C10  Token carries its own key material and claims an enrolled kid
+            ACCEPT | INDETERMINATE(secondary_unauthenticated) | UNRESOLVED(secondary_unauthenticated) | UNSATISFIED(invalid_signature) | REFUSED(secondary_native_reject) | NONE | NONE
+
+    10/10 negative controls passed (row-by-row)
 
 Between them the controls reach every row value no vector produces:
 `NOT_EQUIVALENT` on `action_linkage` and three distinct causes of `INDETERMINATE`
@@ -234,6 +251,56 @@ lenient string or prefix comparison would miss.
 claiming a fact off a grant the verifier just refused. Each row below
 `aae_native` reports its own not-established value rather than being omitted or
 carried over.
+
+## Confirmation status of the controls
+
+Section 7 of draft-mih-sato-agent-accountability-composition-00 holds that a
+vector freezes only after two independent implementations recompute it. The
+controls are not all at the same point.
+
+| Controls | Standing |
+|---|---|
+| C1 – C9 | Recomputed independently. The AAE side of the exchange was re-performed by EMILIA Protocol from the byte-pinned fixture, in JavaScript with its own RFC 8785 implementation, and the digest and native verdict agree. |
+| **C10** | **New. Not yet recomputed by a second implementation.** The row below is this side's reading only. |
+
+C10 carries `"status": "proposed - not yet recomputed by a second
+implementation"` in `negative-controls.json`, so the distinction is in the data
+rather than only in this file.
+
+### C10 is a witness, and a weak one read alone
+
+The control re-signs the PSEA token with `testkeys/psea-attacker-key.json` — a
+key enrolled nowhere — embeds that key's public half in the payload as
+`cnf.jwk`, and leaves the protected header's `kid` pointing at `psea-key-A`. A
+verifier that took key material from the artifact would accept. This one
+resolves `kid` against the fixture's `enrolled_keys` and never reads a key out
+of the token, so the signature fails against the enrolled key.
+
+The refusal is `invalid_signature`, which is the same code an ordinary broken
+signature produces. There is no reason naming the embedded key, because the
+checker never looks at it. **The evidence that the enrolled key was used is the
+contrast with the unmutated run**, where the same token structure verifies:
+
+    forged token   verify_psea_proof -> ok=False  detail='invalid_signature'
+    unmutated      verify_psea_proof -> ok=True   detail='verified'
+
+Read without that contrast, C10 is indistinguishable from C3. It is recorded as
+a witness to existing behaviour, not as a check that was added; the resolution
+path is unchanged.
+
+Signing uses RFC 6979 deterministic ECDSA, so the forged token is byte-identical
+on every run and a second implementation can recompute it:
+
+    sha256(forged token)  306ae28f12b30fc1e34216c43a1e3389102b56a42f647942710e291e6dfda6e2
+
+The attacker key is derivable rather than merely committed: its private scalar is
+`sha256(b"aae-conformance-vectors/psea-attacker-key/v1")` reduced modulo the
+P-256 group order, recorded in the key file. A reviewer can rebuild it without
+trusting the committed bytes.
+
+The class is not in Section 5.2 of the composition draft. It came from the
+counterpart implementation's own row N16, resting on draft-yossif-psea-02
+Section 6.3, "Enrollment Is the Root of Trust".
 
 ## Native set unaffected
 
