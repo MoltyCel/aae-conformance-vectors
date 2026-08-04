@@ -311,7 +311,50 @@ meets that bar. The WHO-join does not yet, so all six vectors carry
    fixture fixes — it binds `kid`s to bare labels.
 2. **Confirm the unit convention.** `amount_minor` as integer minor units on the
    payload, and `max_transaction_value.value` in the same unit on the AAE side.
-3. **Confirm the propagation reasons.** `aae_native_reject` and
-   `secondary_native_reject` are this side's encoding of "a native check failed,
-   so the composition never ran". No vector in this set exercises them; the
-   negative controls in RESULTS.md do.
+3. **Confirm the reason vocabulary.** Stage values are a closed enum; reasons are
+   deliberately open, so every token below is this side's naming rather than
+   something the drafts fix. The counterpart implementation has said that a second
+   implementation disagreeing on a refusal code indicates an ambiguity in the
+   specification rather than an error, which needs the full list to act on.
+
+   | Reason | Rows it appears on | Produced by | Standing |
+   |---|---|---|---|
+   | `principal_divergence` | principal_linkage, evidence_satisfaction, decision | xp-2, C2 | interpretation — the WHO comparison this set proposes |
+   | `unresolved_binding` | principal_linkage | xp-3, xp-5a | interpretation — absence of a table entry |
+   | `aae_binding_absent` | action_linkage | C7 | interpretation — see below |
+   | `aae_binding_mismatch` | action_linkage | C6 | interpretation — see below |
+   | `payload_digest_mismatch` | action_linkage, evidence_satisfaction, decision | C8 | recomputation disagrees with the declaration |
+   | `payload_not_i_json` | action_linkage | C9 | interpretation — see below |
+   | `join_mismatch` | action_linkage, decision | C1 | the two declared digests differ on the octets |
+   | `evidence_covers_a_different_action` | evidence_satisfaction | C1 | consequence of `join_mismatch` |
+   | `expired_not_after` | aae_native | C4 | propagated verbatim from the AAE Section 5 verifier |
+   | `invalid_signature` | evidence_satisfaction | C3, C10 | native PSEA signature failure |
+   | `secondary_unauthenticated` | action_linkage, principal_linkage | C3, C10 | an unauthenticated artifact commits to nothing |
+   | `secondary_native_reject` | decision | C3, C10 | propagation: a native check failed |
+   | `aae_native_reject` | decision | C4 | propagation: a native check failed |
+   | `aae_not_admitted` | action_linkage, principal_linkage, evidence_satisfaction | C4 | propagation: the grant was refused |
+   | `action_linkage_unestablished` | principal_linkage, evidence_satisfaction, decision | C6, C7, C9 | propagation: the linkage was not established |
+
+   Four of these carry a judgement worth disagreeing with:
+
+   - `aae_binding_absent` and `aae_binding_mismatch` sit on `action_linkage` as
+     INDETERMINATE, not NOT_EQUIVALENT. An envelope that does not commit to the
+     declared digest establishes nothing about which action it authorizes, which
+     this side reads as a different fact from two sides meaning different actions.
+     The corresponding class is `NOT_REPRESENTABLE` against the counterpart
+     profile, since its digest is a claim inside the signed payload; on the AAE
+     side it is constructible, so the naming is ours alone.
+   - `payload_not_i_json` treats a payload outside the I-JSON subset as
+     unestablished rather than as a mismatch, because a digest whose
+     reproducibility across implementations is unknown is not evidence of
+     disagreement. The counterpart's `canonicalize()` refuses the same inputs; its
+     refusal code for them is not known here.
+   - `principal_divergence` and `unresolved_binding` are the two values that
+     separate the WHO axis at all, and they depend on the table in item 1.
+     Confirming the table without confirming these leaves the axis half-agreed.
+
+   An earlier revision of this item claimed no vector exercises these reasons.
+   That was written when the set had three vectors and five controls, and it is
+   no longer true: xp-2, xp-3 and xp-5a produce `principal_divergence` and
+   `unresolved_binding` directly. The propagation reasons in the last four rows
+   are still control-only.
