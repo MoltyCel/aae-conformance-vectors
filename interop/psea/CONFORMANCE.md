@@ -202,6 +202,37 @@ scope, per draft-yossif-enrollment-problem-00. `principal_linkage` consumes that
 binding as a relying-party input, supplied here by the declared resolution table,
 and reports only whether two resolutions agree.
 
+The two sides name a principal in forms that do not convert into one another. AAE
+carries `mandate.principal_did`, a DID resolvable through a DID document.
+draft-yossif-psea defines no principal identifier form at all: its per-proof
+subject commitment (Section 3.8) is audit attribution, and a verifier makes no
+authorization decision on it. What the `kid` binds to is a deployment-issued
+enrollment label the profile does not specify. Neither form is derivable from the
+other, and neither specification defines the correspondence.
+
+The resolution table bridges that by declaration. It is **supplied, not
+derived** — data handed to the checker, not an inference either document
+supports. The DID form used here is this side's choice. The counterpart profile
+has the same shape elsewhere: Section 3.13.4 states that the expected `psea_op`
+and `psea_tier` values are "deployment-defined and agreed out of band", which is
+the same kind of binding, agreed the same way.
+
+The confirmation of the table is therefore a confirmation that the correspondence
+is the intended one, not that it follows from anything. Mohamad Khalil-Yossif,
+confirming at head `8bed788`, put the limit in the confirmation itself: it
+"confirms the resolution mapping at head 8bed788 and establishes WHO linkage. It
+does not establish PSEA conformance, and it does not establish that the
+kid-to-principal mapping is derivable from anything either specification defines
+- it is supplied."
+
+Two states of this repository record the axis differently, and both are correct.
+The exchange fixture under `fixtures/aae-psea-proof-exchange-v1/` preserves the
+state at commit `e8c00e5`, where WHO was proposed; it is a frozen record pinned
+by hash in an independent re-performance, and its `PROPOSED` markers are
+deliberately left standing. The live vector set carries the axis forward from
+`8bed788`. A frozen record and a live set disagreeing about a status is the
+expected result of pinning one and continuing the other.
+
 The row is independent of `action_linkage` and of `evidence_satisfaction` by
 construction, which xp-6 and the xp-5 pair demonstrate from two directions. In
 xp-6 two AAE labels resolve to one canonical principal while a string comparison
@@ -275,6 +306,25 @@ in the spine rather than overloading an existing row.
 Section 5. It performs real ES256 verification for step 2 against the enrolled
 JWKs the counterpart fixture publishes.
 
+### The counterpart verifier is no longer a single implementation
+
+The PSEA verification decisions this set consumes were, until recently, one
+author's reading of his own draft. Songbo Bu has since cross-run an independent
+PSEA verifier against psea-spec commit `c0b3c385`, covering the 13 REQUIRED claim
+checks, header policy, enrolled-key resolution, action binding, freshness, replay
+and user-verification anchoring. The verdict distribution matches the reference,
+with no verifier disagreement across the 31 scenarios. The archive digest
+reported for that run is
+`37385e5f0b61f2ed105192072906743f481569180ba6f06d43801f686a5b4cbb`.
+
+Its scope, stated by its author: an independent implementation cross-run over the
+supplied suite, not conformance, not endorsement.
+
+The commit is verified to exist in `yuthent/psea-spec`. The archive digest is
+recorded as reported and has not been recomputed here.
+
+## Reference implementation, this side
+
 Result on this set: **6/6**, compared row by row rather than on a single field.
 The nine negative controls in `negative-controls.json` reach the row values no
 vector produces — two distinct causes of `NOT_EQUIVALENT` on `action_linkage`
@@ -347,13 +397,38 @@ meets that bar. The WHO-join does not yet, so all six vectors carry
    - `payload_not_i_json` treats a payload outside the I-JSON subset as
      unestablished rather than as a mismatch, because a digest whose
      reproducibility across implementations is unknown is not evidence of
-     disagreement. The counterpart's `canonicalize()` refuses the same inputs; its
-     refusal code for them is not known here.
+     disagreement. The counterpart raises `PAYLOAD_NON_CONFORMING` for the same
+     inputs, from its canonicalizer rather than its verifier, before any digest is
+     computed, on any payload outside the integers-only subset of
+     draft-yossif-psea Section 2.5. The two map onto each other cleanly: both
+     report the linkage as unestablished rather than as a mismatch. A decimal value
+     is rejected on the counterpart side before any join is attempted, which
+     matters because a payload reaching the join would read as a composition
+     failure instead of a payload defect.
    - `principal_divergence` and `unresolved_binding` are the two values that
      separate the WHO axis at all, and they depend on the table in item 1.
      Confirming the table without confirming these leaves the axis half-agreed.
 
-   An earlier revision of this item claimed no vector exercises these reasons.
+4. **The secondary declaration is unexercised against its artifact.**
+   `join_what.aae_digest` is checked against `mandate.action_binding` in the signed
+   envelope; `join_what.secondary_digest` has no equivalent check against
+   `psea_payload_hash` in the token. The asymmetry is deliberate rather than
+   overlooked. Binding both sides would leave `NOT_EQUIVALENT` unreachable, because
+   the fixture supplies one token committing to one digest, and every declaration
+   pinned to its signed source would then agree by construction. C1 reaches
+   `NOT_EQUIVALENT` only because the secondary declaration is free to diverge.
+
+   This is recorded as unexercised, not as covered. The counterpart suite carries
+   five rows as not-representable for the same class of reason — a construct the
+   profile does not define cannot be tested against it — and this row belongs to
+   the same category rather than to a list of passes.
+
+   Exercising it later needs a second action payload, which changes the digest
+   without touching key material. A second token would not serve: it would change
+   what is signed, and the point is to vary the action while the signer stays
+   fixed.
+
+   An earlier revision of item 3 claimed no vector exercises these reasons.
    That was written when the set had three vectors and five controls, and it is
    no longer true: xp-2, xp-3 and xp-5a produce `principal_divergence` and
    `unresolved_binding` directly. The propagation reasons in the last four rows

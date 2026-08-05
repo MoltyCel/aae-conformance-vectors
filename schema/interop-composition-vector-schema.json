@@ -179,7 +179,11 @@
           "properties": {
             "status": {
               "type": "string",
-              "const": "proposed convention, pending cross-run confirmation"
+              "enum": [
+                "proposed convention, pending cross-run confirmation",
+                "confirmed at head 8bed788 - WHO linkage established, PSEA conformance not established, kid-to-principal mapping supplied not derived"
+              ],
+              "description": "Two admissible states. The enum permits the confirmed wording; it does not require it, so a vector still carrying the proposed value stays valid. The counterpart confirmation is recorded in CONFORMANCE.md; flipping the per-vector status is a separate change, because the vector set is pinned by hash in an independent re-performance."
             },
             "canonical_space": {
               "type": "string",
