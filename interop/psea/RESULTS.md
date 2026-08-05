@@ -3,7 +3,7 @@
 Recorded run of the six composition vectors, the negative controls behind
 them, and the integrity pins a reviewer needs to reproduce both.
 
-Run date: 2026-07-29. Vector set status: **proposed** (WHO-join unconfirmed).
+Run date: 2026-07-29. Vector set status: **confirmed** — the WHO-join was confirmed at head `8bed788` by Mohamad Khalil-Yossif.
 
 Results are reported as seven staged rows rather than a single composition
 verdict. See [CONFORMANCE.md](CONFORMANCE.md) for the row set, the evaluation

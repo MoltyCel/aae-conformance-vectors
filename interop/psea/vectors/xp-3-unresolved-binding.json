@@ -2,7 +2,7 @@
   "id": "xp-3",
   "name": "Unresolved binding - refused on a missing input",
   "description": "The AAE grant names a principal with no entry in the resolution table; the PSEA proof is signed by the key enrolled to principal-A. Both artifacts verify natively and carry the same action digest.",
-  "status": "proposed",
+  "status": "confirmed",
   "section_ref": "draft-kroehl-agentic-trust-aae-00 Section 5 steps 1-7; draft-yossif-psea-02 Sections 2.5, 3.8; draft-yossif-enrollment-problem-00",
   "verification_mode": "structural",
   "input": {
@@ -66,7 +66,7 @@
       }
     },
     "join_who": {
-      "status": "proposed convention, pending cross-run confirmation",
+      "status": "confirmed at head 8bed788 (Mohamad Khalil-Yossif); WHO linkage established, PSEA conformance not established, kid-to-principal mapping supplied not derived",
       "canonical_space": "urn:interop:aae-psea:principal",
       "unresolved_rule": "an identifier with no entry in the table is unresolved",
       "principal_resolution": {

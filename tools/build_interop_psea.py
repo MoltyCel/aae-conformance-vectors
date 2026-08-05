@@ -518,7 +518,7 @@ def main() -> int:
             "id": v["id"],
             "name": v["name"],
             "description": v["description"],
-            "status": "proposed",
+            "status": "confirmed",
             "section_ref": f"{AAE_DRAFT} Section 5 steps 1-7; "
                            f"{fix['psea_profile']} Sections 2.5, 3.8; "
                            "draft-yossif-enrollment-problem-00",

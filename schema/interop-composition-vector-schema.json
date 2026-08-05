@@ -22,12 +22,21 @@
       "pattern": "^xp-[0-9]+[a-z]?$",
       "description": "Composition-vector id, distinct from the aae-vector-NN namespace of the native set."
     },
-    "name": { "type": "string", "minLength": 1 },
-    "description": { "type": "string", "minLength": 1 },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
     "status": {
       "type": "string",
-      "enum": ["proposed", "confirmed"],
-      "description": "'proposed' until a second independent implementation recomputes the vector, per Section 7 of draft-mih-sato-agent-accountability-composition-00. A composition vector whose join_who convention has not been confirmed by the counterpart profile MUST stay 'proposed'."
+      "enum": [
+        "proposed",
+        "confirmed"
+      ],
+      "description": "'proposed' until a second independent implementation recomputes the vector, per Section 7 of draft-mih-sato-agent-accountability-composition-00, or until the counterpart profile confirms a convention that cannot be recomputed because it is supplied rather than derived. A vector whose join_who block is still marked as a proposal MUST stay 'proposed'; the validator enforces that pairing."
     },
     "section_ref": {
       "type": "string",
@@ -36,12 +45,21 @@
     },
     "verification_mode": {
       "type": "string",
-      "enum": ["runtime", "structural"],
+      "enum": [
+        "runtime",
+        "structural"
+      ],
       "description": "Same derivation axis as the native set: 'structural' = the verdict follows from document-only properties; 'runtime' = it requires live external state (clock, revocation lookup, consumed-id tracking). Orthogonal to enforcement posture."
     },
     "input": {
       "type": "object",
-      "required": ["secured_aae", "context", "secondary_artifact", "join_what", "join_who"],
+      "required": [
+        "secured_aae",
+        "context",
+        "secondary_artifact",
+        "join_what",
+        "join_who"
+      ],
       "additionalProperties": false,
       "properties": {
         "secured_aae": {
@@ -52,15 +70,38 @@
         "context": {
           "type": "object",
           "description": "Facts a static file cannot reproduce live, passed to the AAE Section 5 algorithm unchanged. Same shape as the native vector set.",
-          "required": ["current_time"],
+          "required": [
+            "current_time"
+          ],
           "properties": {
-            "current_time": { "type": "string", "format": "date-time" },
-            "requested_action": { "type": "string" },
-            "action_context": { "type": "object" },
-            "subject_binding": { "type": "object" },
-            "consumed_ids": { "type": "array", "items": { "type": "string" } },
-            "revocation_responses": { "type": "object" },
-            "delegation_chain": { "type": "array", "items": { "type": "string" } }
+            "current_time": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "requested_action": {
+              "type": "string"
+            },
+            "action_context": {
+              "type": "object"
+            },
+            "subject_binding": {
+              "type": "object"
+            },
+            "consumed_ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "revocation_responses": {
+              "type": "object"
+            },
+            "delegation_chain": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
           },
           "additionalProperties": true
         },
@@ -113,15 +154,25 @@
               "$ref": "#/$defs/encoded_digest",
               "description": "The action digest the artifact commits to, in the counterpart profile's own wire encoding."
             },
-            "uv_anchoring": { "type": "string" },
+            "uv_anchoring": {
+              "type": "string"
+            },
             "source": {
               "type": "object",
               "description": "Provenance of the artifact, so a reviewer can re-fetch and re-hash it.",
-              "required": ["repository", "path", "sha256"],
+              "required": [
+                "repository",
+                "path",
+                "sha256"
+              ],
               "additionalProperties": false,
               "properties": {
-                "repository": { "type": "string" },
-                "path": { "type": "string" },
+                "repository": {
+                  "type": "string"
+                },
+                "path": {
+                  "type": "string"
+                },
                 "sha256": {
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$",
@@ -162,13 +213,17 @@
               "minLength": 2,
               "description": "The RFC 8785 canonical UTF-8 form of `payload`, recorded so a reviewer can diff canonicalizers without running one."
             },
-            "aae_digest": { "$ref": "#/$defs/encoded_digest" },
-            "secondary_digest": { "$ref": "#/$defs/encoded_digest" }
+            "aae_digest": {
+              "$ref": "#/$defs/encoded_digest"
+            },
+            "secondary_digest": {
+              "$ref": "#/$defs/encoded_digest"
+            }
           }
         },
         "join_who": {
           "type": "object",
-          "description": "Axis 2 — the principal resolution. PROPOSED CONVENTION, PENDING CROSS-RUN CONFIRMATION. Neither draft-kroehl-agentic-trust-aae-00 nor draft-yossif-psea-02 fixes a shared principal identifier space: AAE names a principal with a DID in mandate.principal_did, the counterpart profile binds a kid to a deployment-issued label. This table is the DECLARED mapping of both identifier forms onto one canonical space. It is data in the vector, never inferred by a verifier at run time. Until the counterpart profile confirms it, every vector using it carries status 'proposed'.",
+          "description": "Axis 2 — the principal resolution. SUPPLIED, NOT DERIVED. Neither draft-kroehl-agentic-trust-aae-00 nor draft-yossif-psea-02 fixes a shared principal identifier space: AAE names a principal with a DID in mandate.principal_did, the counterpart profile binds a kid to a deployment-issued label it does not specify. This table is the DECLARED mapping of both identifier forms onto one canonical space. It is data in the vector, never inferred by a verifier at run time. The counterpart profile confirmed the mapping at head 8bed788, which is agreement that the correspondence is the intended one rather than a recomputation; nothing here is derivable from either specification.",
           "required": [
             "status",
             "canonical_space",
@@ -181,9 +236,9 @@
               "type": "string",
               "enum": [
                 "proposed convention, pending cross-run confirmation",
-                "confirmed at head 8bed788 - WHO linkage established, PSEA conformance not established, kid-to-principal mapping supplied not derived"
+                "confirmed at head 8bed788 (Mohamad Khalil-Yossif); WHO linkage established, PSEA conformance not established, kid-to-principal mapping supplied not derived"
               ],
-              "description": "Two admissible states. The enum permits the confirmed wording; it does not require it, so a vector still carrying the proposed value stays valid. The counterpart confirmation is recorded in CONFORMANCE.md; flipping the per-vector status is a separate change, because the vector set is pinned by hash in an independent re-performance."
+              "description": "Two admissible states. The enum permits either wording, so a vector predating the confirmation stays valid. All six vectors in this set now carry the confirmed value; the exchange fixture under fixtures/ keeps the earlier one, because it is a frozen record pinned by hash in an independent re-performance."
             },
             "canonical_space": {
               "type": "string",
@@ -206,18 +261,27 @@
             },
             "principal_resolution": {
               "type": "object",
-              "required": ["aae", "secondary"],
+              "required": [
+                "aae",
+                "secondary"
+              ],
               "additionalProperties": false,
               "properties": {
                 "aae": {
                   "type": "object",
                   "description": "mandate.principal_did -> canonical principal.",
-                  "additionalProperties": { "type": "string", "minLength": 1 }
+                  "additionalProperties": {
+                    "type": "string",
+                    "minLength": 1
+                  }
                 },
                 "secondary": {
                   "type": "object",
                   "description": "enrollment_binding label -> canonical principal. The kid -> label hop comes from the counterpart fixture's own enrollment_bindings and is not restated here.",
-                  "additionalProperties": { "type": "string", "minLength": 1 }
+                  "additionalProperties": {
+                    "type": "string",
+                    "minLength": 1
+                  }
                 }
               }
             }
@@ -228,7 +292,9 @@
     "expected": {
       "type": "object",
       "description": "The staged result. There is no single composition verdict: a composition failure is located at the stage that produced it, so two failures that a one-column verdict would render identically stay distinguishable here. Every row is reported; a row is never omitted because an earlier row failed.",
-      "required": ["stages"],
+      "required": [
+        "stages"
+      ],
       "additionalProperties": false,
       "properties": {
         "custody": {
@@ -251,14 +317,26 @@
           "additionalProperties": false,
           "properties": {
             "aae_native": {
-              "allOf": [{ "$ref": "#/$defs/stage_row" }],
+              "allOf": [
+                {
+                  "$ref": "#/$defs/stage_row"
+                }
+              ],
               "properties": {
                 "value": {
                   "type": "string",
-                  "enum": ["ACCEPT", "REJECT"],
+                  "enum": [
+                    "ACCEPT",
+                    "REJECT"
+                  ],
                   "description": "What the unmodified AAE Section 5 algorithm returns for input.secured_aae."
                 },
-                "reason": { "type": ["string", "null"] },
+                "reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "verification_step": {
                   "type": "integer",
                   "minimum": 1,
@@ -269,74 +347,154 @@
               "unevaluatedProperties": false
             },
             "action_linkage": {
-              "allOf": [{ "$ref": "#/$defs/stage_row" }],
+              "allOf": [
+                {
+                  "$ref": "#/$defs/stage_row"
+                }
+              ],
               "properties": {
                 "value": {
                   "type": "string",
-                  "enum": ["EQUIVALENT", "NOT_EQUIVALENT", "INDETERMINATE"],
+                  "enum": [
+                    "EQUIVALENT",
+                    "NOT_EQUIVALENT",
+                    "INDETERMINATE"
+                  ],
                   "description": "Whether both artifacts demonstrably commit to the same action. EQUIVALENT: the two digests decode to 32 identical octets. NOT_EQUIVALENT: they decode to 32 octets that differ. INDETERMINATE: the linkage could not be established at all - a digest was undecodable, or an artifact whose commitment would be needed did not authenticate. Not the same fact as UNRESOLVED on principal_linkage, and not the same fact as INDETERMINATE on outcome."
                 },
-                "reason": { "type": ["string", "null"] }
+                "reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
               },
               "unevaluatedProperties": false
             },
             "principal_linkage": {
-              "allOf": [{ "$ref": "#/$defs/stage_row" }],
+              "allOf": [
+                {
+                  "$ref": "#/$defs/stage_row"
+                }
+              ],
               "properties": {
                 "value": {
                   "type": "string",
-                  "enum": ["SAME", "DIVERGENT", "UNRESOLVED"],
-                  "description": "Whether both sides name the same principal, resolved through the vector's declared join_who table. SAME: both resolve, to the same canonical principal. DIVERGENT: both resolve, to different canonical principals - a conflict that was observed. UNRESOLVED: at least one identifier has no entry, or came from an artifact that did not authenticate - a missing input, not a conflict. PROPOSED: the value on this row depends on the join_who table, which is a proposed convention pending confirmation from the counterpart profile."
+                  "enum": [
+                    "SAME",
+                    "DIVERGENT",
+                    "UNRESOLVED"
+                  ],
+                  "description": "Whether both sides name the same principal, resolved through the vector's declared join_who table. SAME: both resolve, to the same canonical principal. DIVERGENT: both resolve, to different canonical principals - a conflict that was observed. UNRESOLVED: at least one identifier has no entry, or came from an artifact that did not authenticate - a missing input, not a conflict. The value on this row depends on the join_who table, which the counterpart profile confirmed at head 8bed788 as a supplied mapping; it does not follow from either specification."
                 },
-                "reason": { "type": ["string", "null"] }
+                "reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
               },
               "unevaluatedProperties": false
             },
             "evidence_satisfaction": {
-              "allOf": [{ "$ref": "#/$defs/stage_row" }],
+              "allOf": [
+                {
+                  "$ref": "#/$defs/stage_row"
+                }
+              ],
               "properties": {
                 "value": {
                   "type": "string",
-                  "enum": ["SATISFIED", "UNSATISFIED", "NOT_EVALUATED"],
+                  "enum": [
+                    "SATISFIED",
+                    "UNSATISFIED",
+                    "NOT_EVALUATED"
+                  ],
                   "description": "Whether the approval evidence satisfies the requirement for this action by this principal. SATISFIED: the evidence authenticates, covers this action, and comes from the mandating principal. UNSATISFIED: the evidence authenticates but does not satisfy the requirement, or does not authenticate at all. NOT_EVALUATED: satisfaction was not reached because a prerequisite stage did not establish what to evaluate against."
                 },
-                "reason": { "type": ["string", "null"] }
+                "reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
               },
               "unevaluatedProperties": false
             },
             "decision": {
-              "allOf": [{ "$ref": "#/$defs/stage_row" }],
+              "allOf": [
+                {
+                  "$ref": "#/$defs/stage_row"
+                }
+              ],
               "properties": {
                 "value": {
                   "type": "string",
-                  "enum": ["AUTHORIZED", "REFUSED"],
+                  "enum": [
+                    "AUTHORIZED",
+                    "REFUSED"
+                  ],
                   "description": "The authorization decision, binary by construction. Uncertainty is never expressed here - it is expressed on the stage that carries it. A refusal for a divergence and a refusal for a missing input are both REFUSED at this row and are told apart by principal_linkage and evidence_satisfaction."
                 },
-                "reason": { "type": ["string", "null"] }
+                "reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
               },
               "unevaluatedProperties": false
             },
             "admission": {
-              "allOf": [{ "$ref": "#/$defs/stage_row" }],
+              "allOf": [
+                {
+                  "$ref": "#/$defs/stage_row"
+                }
+              ],
               "properties": {
                 "value": {
                   "type": "string",
-                  "enum": ["NONE", "RESERVED", "CONSUMED", "DISPATCH_PENDING", "INVOKED"],
+                  "enum": [
+                    "NONE",
+                    "RESERVED",
+                    "CONSUMED",
+                    "DISPATCH_PENDING",
+                    "INVOKED"
+                  ],
                   "description": "What the relying party did with a single-use or otherwise consumable admission on the strength of the decision. NONE: nothing was admitted. RESERVED: an admission was held but not spent. CONSUMED: an admission was spent. DISPATCH_PENDING: dispatch was initiated and its acceptance is not yet known. INVOKED: the action was handed to the executing system."
                 },
-                "reason": { "type": ["string", "null"] }
+                "reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
               },
               "unevaluatedProperties": false
             },
             "outcome": {
-              "allOf": [{ "$ref": "#/$defs/stage_row" }],
+              "allOf": [
+                {
+                  "$ref": "#/$defs/stage_row"
+                }
+              ],
               "properties": {
                 "value": {
                   "type": "string",
-                  "enum": ["EXECUTED", "FAILED", "INDETERMINATE", "NONE"],
+                  "enum": [
+                    "EXECUTED",
+                    "FAILED",
+                    "INDETERMINATE",
+                    "NONE"
+                  ],
                   "description": "What the executing system reports back. EXECUTED: the action completed. FAILED: it did not. INDETERMINATE: what happened could not be established - the distinct case where an admission was spent and the result is unknown. NONE: nothing was attempted. INDETERMINATE here is a fact about execution, never about linkage."
                 },
-                "reason": { "type": ["string", "null"] }
+                "reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
               },
               "unevaluatedProperties": false
             }
@@ -349,7 +507,15 @@
           "if": {
             "properties": {
               "stages": {
-                "properties": { "decision": { "properties": { "value": { "const": "REFUSED" } } } }
+                "properties": {
+                  "decision": {
+                    "properties": {
+                      "value": {
+                        "const": "REFUSED"
+                      }
+                    }
+                  }
+                }
               }
             }
           },
@@ -357,13 +523,104 @@
             "properties": {
               "stages": {
                 "anyOf": [
-                  { "properties": { "aae_native": { "required": ["reason"], "properties": { "reason": { "type": "string" } } } } },
-                  { "properties": { "action_linkage": { "required": ["reason"], "properties": { "reason": { "type": "string" } } } } },
-                  { "properties": { "principal_linkage": { "required": ["reason"], "properties": { "reason": { "type": "string" } } } } },
-                  { "properties": { "evidence_satisfaction": { "required": ["reason"], "properties": { "reason": { "type": "string" } } } } },
-                  { "properties": { "decision": { "required": ["reason"], "properties": { "reason": { "type": "string" } } } } },
-                  { "properties": { "admission": { "required": ["reason"], "properties": { "reason": { "type": "string" } } } } },
-                  { "properties": { "outcome": { "required": ["reason"], "properties": { "reason": { "type": "string" } } } } }
+                  {
+                    "properties": {
+                      "aae_native": {
+                        "required": [
+                          "reason"
+                        ],
+                        "properties": {
+                          "reason": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "action_linkage": {
+                        "required": [
+                          "reason"
+                        ],
+                        "properties": {
+                          "reason": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "principal_linkage": {
+                        "required": [
+                          "reason"
+                        ],
+                        "properties": {
+                          "reason": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "evidence_satisfaction": {
+                        "required": [
+                          "reason"
+                        ],
+                        "properties": {
+                          "reason": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "decision": {
+                        "required": [
+                          "reason"
+                        ],
+                        "properties": {
+                          "reason": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "admission": {
+                        "required": [
+                          "reason"
+                        ],
+                        "properties": {
+                          "reason": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "outcome": {
+                        "required": [
+                          "reason"
+                        ],
+                        "properties": {
+                          "reason": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
                 ]
               }
             }
@@ -374,7 +631,15 @@
           "if": {
             "properties": {
               "stages": {
-                "properties": { "decision": { "properties": { "value": { "const": "AUTHORIZED" } } } }
+                "properties": {
+                  "decision": {
+                    "properties": {
+                      "value": {
+                        "const": "AUTHORIZED"
+                      }
+                    }
+                  }
+                }
               }
             }
           },
@@ -382,10 +647,34 @@
             "properties": {
               "stages": {
                 "properties": {
-                  "aae_native": { "properties": { "value": { "const": "ACCEPT" } } },
-                  "action_linkage": { "properties": { "value": { "const": "EQUIVALENT" } } },
-                  "principal_linkage": { "properties": { "value": { "const": "SAME" } } },
-                  "evidence_satisfaction": { "properties": { "value": { "const": "SATISFIED" } } }
+                  "aae_native": {
+                    "properties": {
+                      "value": {
+                        "const": "ACCEPT"
+                      }
+                    }
+                  },
+                  "action_linkage": {
+                    "properties": {
+                      "value": {
+                        "const": "EQUIVALENT"
+                      }
+                    }
+                  },
+                  "principal_linkage": {
+                    "properties": {
+                      "value": {
+                        "const": "SAME"
+                      }
+                    }
+                  },
+                  "evidence_satisfaction": {
+                    "properties": {
+                      "value": {
+                        "const": "SATISFIED"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -396,7 +685,15 @@
           "if": {
             "properties": {
               "stages": {
-                "properties": { "principal_linkage": { "properties": { "value": { "const": "DIVERGENT" } } } }
+                "properties": {
+                  "principal_linkage": {
+                    "properties": {
+                      "value": {
+                        "const": "DIVERGENT"
+                      }
+                    }
+                  }
+                }
               }
             }
           },
@@ -404,9 +701,30 @@
             "properties": {
               "stages": {
                 "properties": {
-                  "principal_linkage": { "required": ["reason"], "properties": { "reason": { "type": "string" } } },
-                  "evidence_satisfaction": { "properties": { "value": { "const": "UNSATISFIED" } } },
-                  "decision": { "properties": { "value": { "const": "REFUSED" } } }
+                  "principal_linkage": {
+                    "required": [
+                      "reason"
+                    ],
+                    "properties": {
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "evidence_satisfaction": {
+                    "properties": {
+                      "value": {
+                        "const": "UNSATISFIED"
+                      }
+                    }
+                  },
+                  "decision": {
+                    "properties": {
+                      "value": {
+                        "const": "REFUSED"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -417,7 +735,15 @@
           "if": {
             "properties": {
               "stages": {
-                "properties": { "principal_linkage": { "properties": { "value": { "const": "UNRESOLVED" } } } }
+                "properties": {
+                  "principal_linkage": {
+                    "properties": {
+                      "value": {
+                        "const": "UNRESOLVED"
+                      }
+                    }
+                  }
+                }
               }
             }
           },
@@ -425,9 +751,33 @@
             "properties": {
               "stages": {
                 "properties": {
-                  "principal_linkage": { "required": ["reason"], "properties": { "reason": { "type": "string" } } },
-                  "evidence_satisfaction": { "properties": { "value": { "enum": ["NOT_EVALUATED", "UNSATISFIED"] } } },
-                  "decision": { "properties": { "value": { "const": "REFUSED" } } }
+                  "principal_linkage": {
+                    "required": [
+                      "reason"
+                    ],
+                    "properties": {
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "evidence_satisfaction": {
+                    "properties": {
+                      "value": {
+                        "enum": [
+                          "NOT_EVALUATED",
+                          "UNSATISFIED"
+                        ]
+                      }
+                    }
+                  },
+                  "decision": {
+                    "properties": {
+                      "value": {
+                        "const": "REFUSED"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -438,7 +788,15 @@
           "if": {
             "properties": {
               "stages": {
-                "properties": { "aae_native": { "properties": { "value": { "const": "REJECT" } } } }
+                "properties": {
+                  "aae_native": {
+                    "properties": {
+                      "value": {
+                        "const": "REJECT"
+                      }
+                    }
+                  }
+                }
               }
             }
           },
@@ -446,10 +804,34 @@
             "properties": {
               "stages": {
                 "properties": {
-                  "action_linkage": { "properties": { "value": { "const": "INDETERMINATE" } } },
-                  "principal_linkage": { "properties": { "value": { "const": "UNRESOLVED" } } },
-                  "evidence_satisfaction": { "properties": { "value": { "const": "NOT_EVALUATED" } } },
-                  "decision": { "properties": { "value": { "const": "REFUSED" } } }
+                  "action_linkage": {
+                    "properties": {
+                      "value": {
+                        "const": "INDETERMINATE"
+                      }
+                    }
+                  },
+                  "principal_linkage": {
+                    "properties": {
+                      "value": {
+                        "const": "UNRESOLVED"
+                      }
+                    }
+                  },
+                  "evidence_satisfaction": {
+                    "properties": {
+                      "value": {
+                        "const": "NOT_EVALUATED"
+                      }
+                    }
+                  },
+                  "decision": {
+                    "properties": {
+                      "value": {
+                        "const": "REFUSED"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -460,7 +842,15 @@
           "if": {
             "properties": {
               "stages": {
-                "properties": { "decision": { "properties": { "value": { "const": "REFUSED" } } } }
+                "properties": {
+                  "decision": {
+                    "properties": {
+                      "value": {
+                        "const": "REFUSED"
+                      }
+                    }
+                  }
+                }
               }
             }
           },
@@ -468,8 +858,20 @@
             "properties": {
               "stages": {
                 "properties": {
-                  "admission": { "properties": { "value": { "const": "NONE" } } },
-                  "outcome": { "properties": { "value": { "const": "NONE" } } }
+                  "admission": {
+                    "properties": {
+                      "value": {
+                        "const": "NONE"
+                      }
+                    }
+                  },
+                  "outcome": {
+                    "properties": {
+                      "value": {
+                        "const": "NONE"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -481,7 +883,17 @@
             "properties": {
               "stages": {
                 "properties": {
-                  "outcome": { "properties": { "value": { "enum": ["EXECUTED", "FAILED", "INDETERMINATE"] } } }
+                  "outcome": {
+                    "properties": {
+                      "value": {
+                        "enum": [
+                          "EXECUTED",
+                          "FAILED",
+                          "INDETERMINATE"
+                        ]
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -490,7 +902,17 @@
             "properties": {
               "stages": {
                 "properties": {
-                  "admission": { "properties": { "value": { "enum": ["CONSUMED", "DISPATCH_PENDING", "INVOKED"] } } }
+                  "admission": {
+                    "properties": {
+                      "value": {
+                        "enum": [
+                          "CONSUMED",
+                          "DISPATCH_PENDING",
+                          "INVOKED"
+                        ]
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -502,7 +924,13 @@
             "properties": {
               "stages": {
                 "properties": {
-                  "outcome": { "properties": { "value": { "const": "INDETERMINATE" } } }
+                  "outcome": {
+                    "properties": {
+                      "value": {
+                        "const": "INDETERMINATE"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -511,7 +939,17 @@
             "properties": {
               "stages": {
                 "properties": {
-                  "outcome": { "required": ["reason"], "properties": { "reason": { "type": "string", "minLength": 1 } } }
+                  "outcome": {
+                    "required": [
+                      "reason"
+                    ],
+                    "properties": {
+                      "reason": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -522,31 +960,58 @@
           "if": {
             "properties": {
               "stages": {
-                "properties": { "admission": { "properties": { "value": { "const": "NONE" } } } }
+                "properties": {
+                  "admission": {
+                    "properties": {
+                      "value": {
+                        "const": "NONE"
+                      }
+                    }
+                  }
+                }
               }
             }
           },
           "then": {
             "properties": {
               "stages": {
-                "properties": { "outcome": { "properties": { "value": { "const": "NONE" } } } }
+                "properties": {
+                  "outcome": {
+                    "properties": {
+                      "value": {
+                        "const": "NONE"
+                      }
+                    }
+                  }
+                }
               }
             }
           }
         }
       ]
     },
-    "rationale": { "type": "string", "minLength": 1 }
+    "rationale": {
+      "type": "string",
+      "minLength": 1
+    }
   },
   "$defs": {
     "stage_row": {
       "type": "object",
       "description": "One stage of the staged result. `value` comes from that stage's own closed enum, declared on the stage itself. `reason` is optional and belongs on the row that produced the condition it names - for example already_consumed on admission, or principal_divergence on principal_linkage - so a reader can locate a failure rather than infer it.",
-      "required": ["value"],
+      "required": [
+        "value"
+      ],
       "properties": {
-        "value": { "type": "string", "minLength": 1 },
+        "value": {
+          "type": "string",
+          "minLength": 1
+        },
         "reason": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Short machine-readable token, snake_case. Not drawn from a closed list: the set of conditions a profile can report is open, while the stage values are not."
         }
       }
@@ -554,13 +1019,25 @@
     "encoded_digest": {
       "type": "object",
       "description": "A digest carried in a declared wire encoding. The encoding is data, not a guess: a consumer decodes it to raw octets and compares octets. base64url-nopad is the AAE-native form (matching the sha-256:<base64url> shape used elsewhere in the draft), base64-pad is the PSEA wire form, hex is the third form seen in practice.",
-      "required": ["alg", "encoding", "value", "octets"],
+      "required": [
+        "alg",
+        "encoding",
+        "value",
+        "octets"
+      ],
       "additionalProperties": false,
       "properties": {
-        "alg": { "type": "string", "const": "sha-256" },
+        "alg": {
+          "type": "string",
+          "const": "sha-256"
+        },
         "encoding": {
           "type": "string",
-          "enum": ["base64url-nopad", "base64-pad", "hex"]
+          "enum": [
+            "base64url-nopad",
+            "base64-pad",
+            "hex"
+          ]
         },
         "value": {
           "type": "string",
@@ -577,16 +1054,34 @@
     "integer_only_object": {
       "type": "object",
       "minProperties": 1,
-      "additionalProperties": { "$ref": "#/$defs/integer_only_value" }
+      "additionalProperties": {
+        "$ref": "#/$defs/integer_only_value"
+      }
     },
     "integer_only_value": {
       "anyOf": [
-        { "type": "string" },
-        { "type": "boolean" },
-        { "type": "null" },
-        { "type": "integer", "multipleOf": 1 },
-        { "type": "array", "items": { "$ref": "#/$defs/integer_only_value" } },
-        { "$ref": "#/$defs/integer_only_object" }
+        {
+          "type": "string"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "multipleOf": 1
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/integer_only_value"
+          }
+        },
+        {
+          "$ref": "#/$defs/integer_only_object"
+        }
       ]
     }
   }

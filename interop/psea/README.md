@@ -26,11 +26,11 @@ below, one has been recomputed on both sides and one has not:
 | Axis | What it joins | Status |
 |---|---|---|
 | **WHAT** | both profiles commit to the same action | **confirmed** — recomputed independently, 32 octets identical |
-| **WHO** | both profiles name the same principal | **proposed** — awaiting confirmation from the PSEA side |
+| **WHO** | both profiles name the same principal | **confirmed** — at head `8bed788` by Mohamad Khalil-Yossif; supplied, not derived |
 
-Every vector here carries `"status": "proposed"` for that reason, and the
-validator fails any vector that claims otherwise while its `join_who` block is
-still marked as a proposal.
+Every vector here carries `"status": "confirmed"`. The validator fails any vector
+that claims confirmed while its `join_who` block is still marked as a proposal, so
+the two cannot drift apart.
 
 ## Axis 1 — the WHAT-join (confirmed)
 
@@ -92,7 +92,7 @@ on both sides, and the AAE constraint threshold is expressed in the same unit:
 `max_transaction_value.value` open; this set pins it, because a join key that
 agrees while the units disagree would authorize the wrong amount.
 
-## Axis 2 — the WHO-join (proposed, pending confirmation)
+## Axis 2 — the WHO-join (confirmed, supplied not derived)
 
 Neither profile fixes a shared principal identifier space. AAE names a principal
 with a DID in `mandate.principal_did`. PSEA binds a `kid` to a deployment-issued
@@ -143,8 +143,12 @@ adding an identifier to it changes every vector's embedded copy. That is the
 intended cost of a single source: the table is a property of the deployment, not
 of one vector.
 
-The table is the part awaiting confirmation. Until the PSEA side agrees to it,
-the WHO-join is a proposal, and all six vectors are proposals with it.
+The table was the part awaiting confirmation. Mohamad Khalil-Yossif confirmed it
+at head `8bed788`, with the limit stated in the confirmation itself: it
+establishes WHO linkage, does not establish PSEA conformance, and does not
+establish that the kid-to-principal mapping is derivable from anything either
+specification defines — it is supplied. See CONFORMANCE.md for the full
+asymmetry.
 
 ## The staged result
 
@@ -290,10 +294,11 @@ it: name the stage in your profile that establishes the same fact, and if no row
 carries a fact your profile distinguishes, that is a gap in the spine worth
 raising rather than a value to overload onto an existing row.
 
-The `principal_linkage` values remain **proposed** in the same sense the join_who
-table is: they are computed from a resolution table the counterpart profile has
-not yet confirmed. The `action_linkage` values are **confirmed** — they come from
-the 32-octet join, recomputed independently on both sides.
+The `principal_linkage` values are **confirmed** in the sense the join_who table
+is: the counterpart profile agreed the correspondence at head `8bed788`, which is
+agreement on a supplied mapping rather than a recomputation. The `action_linkage`
+values are **confirmed** in the stronger sense — they come from the 32-octet join,
+recomputed independently on both sides.
 
 ## The two AAE envelopes
 

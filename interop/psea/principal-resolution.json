@@ -1,5 +1,5 @@
 {
-  "status": "proposed convention, pending cross-run confirmation",
+  "status": "confirmed at head 8bed788 (Mohamad Khalil-Yossif); WHO linkage established, PSEA conformance not established, kid-to-principal mapping supplied not derived",
   "note": "Single source for the join_who table. `principal_resolution` is the fully enrolled table; two AAE-side identifiers may map onto one canonical principal, which is what xp-6 exercises. `states` names the relying-party enrollment states a vector may be evaluated in; each derives from the enrolled table by omitting the secondary entries it has not enrolled yet. tools/build_interop_psea.py reads both and embeds the derived table into every vector's input.join_who, so no derivation lives as a literal in code and the vectors cannot drift from this file.",
   "canonical_space": "urn:interop:aae-psea:principal",
   "unresolved_rule": "an identifier with no entry in the table is unresolved",

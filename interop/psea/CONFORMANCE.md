@@ -341,12 +341,16 @@ runs and the integrity pins.
 | Axis | Recomputed by | Status |
 |---|---|---|
 | WHAT-join (JCS digest) | PSEA side (`conformance/src/jcs.py`, per its README) and AAE side (RFC 8785 library, this set) | **confirmed** — 32 octets identical |
-| WHO-join (principal resolution) | AAE side only | **proposed** — awaiting PSEA-side confirmation |
+| WHO-join (principal resolution) | AAE side, confirmed by the counterpart profile | **confirmed** — at head `8bed788` by Mohamad Khalil-Yossif |
 
 Per Section 7 of draft-mih-sato-agent-accountability-composition-00, a vector
 freezes only after two independent implementations recompute it. The WHAT-join
-meets that bar. The WHO-join does not yet, so all six vectors carry
-`"status": "proposed"` and this set is not a conformance claim.
+meets that bar. The WHO-join now meets it differently: the counterpart profile
+confirmed the resolution mapping rather than recomputing it, because the mapping
+is supplied rather than derived and there is nothing to recompute. All six vectors
+carry `"status": "confirmed"`. This set is still not a conformance claim — the
+confirmation establishes WHO linkage and explicitly does not establish PSEA
+conformance.
 
 ## Open items for the counterpart side
 
