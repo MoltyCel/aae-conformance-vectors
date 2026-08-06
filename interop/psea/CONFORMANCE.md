@@ -20,7 +20,7 @@ verdict; it consumes them.
 
 ## The staged result
 
-A composition result is seven rows, not one verdict. Each carries a value from
+A composition result is eight rows, not one verdict. Each carries a value from
 its own closed enum and an optional `reason` on the row that produced the
 condition.
 
@@ -30,6 +30,7 @@ condition.
 | `action_linkage` | EQUIVALENT · NOT_EQUIVALENT · INDETERMINATE | Whether both artifacts demonstrably commit to the same action. |
 | `principal_linkage` | SAME · DIVERGENT · UNRESOLVED | Whether both sides name the same principal, through the declared table. |
 | `evidence_satisfaction` | SATISFIED · UNSATISFIED · NOT_EVALUATED | Whether the approval evidence satisfies the requirement for this action by this principal. |
+| `freshness` | WELL_FORMED · CLAIMS_MALFORMED · NOT_EVALUATED | Whether the replay-defence claims the counterpart profile requires are present and well-formed. |
 | `decision` | AUTHORIZED · REFUSED | The authorization decision, binary by construction. |
 | `admission` | NONE · RESERVED · CONSUMED · DISPATCH_PENDING · INVOKED | What the relying party did with a consumable admission. |
 | `outcome` | EXECUTED · FAILED · INDETERMINATE · NONE | What the executing system reported back. |
@@ -119,7 +120,7 @@ posture — a composition layer may run these in advisory mode and only log.
 ## Why the rows, and not a verdict
 
 xp-2 and xp-3 both read REFUSED at `decision`. That is not a loss of
-information, because `decision` is not the result — the seven rows are. They
+information, because `decision` is not the result — the eight rows are. They
 separate at `principal_linkage` (DIVERGENT against UNRESOLVED) and again at
 `evidence_satisfaction` (UNSATISFIED against NOT_EVALUATED).
 
@@ -239,6 +240,40 @@ xp-6 two AAE labels resolve to one canonical principal while a string comparison
 of the identifiers would report a mismatch. In xp-5a and xp-5b one identifier
 resolves differently at two times, with the artifacts unchanged. Both cases leave
 `action_linkage` at EQUIVALENT throughout.
+
+### Freshness
+
+draft-yossif-psea Section 3.11 anchors replay defence in three places: the
+monotonic `psea_counter` for ordering, the global uniqueness of `jti` so an action
+finalizes once, and an OPTIONAL `eat_nonce` binding a proof to a challenge the
+verifier issued. Section 3.5 makes the first two REQUIRED claims.
+
+The freshness stage establishes claim well-formedness only: `psea_counter` is an
+integer at or above zero and `jti` is a non-empty string, read from the token this
+checker has already authenticated. `psea_counter` is checked first, as the
+ordering anchor whose absence leaves the sequence undefined, and `jti` second as
+the uniqueness key; the order is fixed so two implementations name the same
+failure on a token that breaks both.
+
+The token also carries `iat` and `exp`. Those are checked during native
+verification and stay out of this row on purpose. Temporal validity of the
+authorization is the AAE VALIDITY axis, checked at Section 5 step 3, and putting a
+second window on this row would place one fact in two places. `eat_nonce` is
+optional, applies only when a verifier issued a challenge, and is absent from this
+set's tokens; it is not checked here.
+
+Cross-presentation replay and counter monotonicity are outside this row.
+Establishing that a counter advanced or that a `jti` was not already spent is
+state across presentations, not a property of the token in hand. It belongs to a
+separate step that a relying party can verify independently, and this set does not
+carry it.
+
+Section 5.2 of the composition draft requires a verifier to keep signature
+validation, digest recomputation, quorum evaluation and freshness as separate
+results, and forbids collapsing them into one opaque boolean. This row is that
+separation for the part a single presentation can support. In the counterpart's
+terms the row sits in the status-freshness family — the `not_after` side of the
+question — rather than condition liveness.
 
 ### Admission and replay
 

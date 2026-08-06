@@ -152,7 +152,7 @@ asymmetry.
 
 ## The staged result
 
-A composition result is **seven rows, not one verdict**. Each row carries a value
+A composition result is **eight rows, not one verdict**. Each row carries a value
 from its own closed enum and an optional `reason` that locates the condition on
 the row that produced it.
 
@@ -260,14 +260,14 @@ time. `action_linkage` stays EQUIVALENT in both.
 
 ## Crosswalk — the rows are framework-neutral
 
-The seven rows are a spine, not a proprietary result format. They are chosen so
+The eight rows are a spine, not a proprietary result format. They are chosen so
 that a profile with its own stage vocabulary maps onto them without renaming its
 concepts, and so that a profile with a coarser result can be expressed as a
 collapse of them rather than a translation.
 
 | Consumer | Relationship to the rows |
 |---|---|
-| This set | Reports all seven directly. |
+| This set | Reports all eight directly. |
 | **Mohamad's three-way result** (`AUTHORIZED` / `REFUSE` / `INDETERMINATE`) | A **collapsed view**, not a different model. See the collapse below. |
 | **EMILIA** (CAID / AEC / AEB) | Maps its own stage names onto these rows. |
 | **PSEA / WEXP** | Map their own stages onto these rows. |
@@ -323,7 +323,7 @@ not re-encoded, not re-signed, not normalized.
 pip install cryptography jsonschema jcs
 python3 tools/validate_interop_schema.py     # 6/6 valid against the schema
 python3 examples/composition-verify.py       # 6/6 passed, row by row
-python3 tools/run_negative_controls.py       # 10/10 passed, row by row
+python3 tools/run_negative_controls.py       # 11/11 passed, row by row
 python3 tools/build_interop_psea.py          # rebuild; output must be byte-identical
 ```
 
@@ -358,8 +358,8 @@ The six vectors alone cannot show the checker's branches are live — all six
 reach `ACCEPT` and `EQUIVALENT` on the first two rows and differ only from
 `principal_linkage` onward, so `NOT_EQUIVALENT`, `INDETERMINATE` and `REJECT`
 are never produced by any of them.
-[`negative-controls.json`](negative-controls.json) pins ten controls. Each
-changes one input of a committed vector and asserts the seven rows that must
+[`negative-controls.json`](negative-controls.json) pins eleven controls. Each
+changes one input of a committed vector and asserts the eight rows that must
 follow; C7 substitutes a committed, separately signed envelope rather than
 patching one. `tools/run_negative_controls.py` runs them, and CI runs it too.
 

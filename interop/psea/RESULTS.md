@@ -5,7 +5,7 @@ them, and the integrity pins a reviewer needs to reproduce both.
 
 Run date: 2026-07-29. Vector set status: **confirmed** — the WHO-join was confirmed at head `8bed788` by Mohamad Khalil-Yossif.
 
-Results are reported as seven staged rows rather than a single composition
+Results are reported as eight staged rows rather than a single composition
 verdict. See [CONFORMANCE.md](CONFORMANCE.md) for the row set, the evaluation
 order, and the collapse to a coarser three-way view.
 
@@ -104,7 +104,7 @@ restating them.
 
 ## Composition run
 
-Comparison is row by row across all seven stages, not on a single field. Every
+Comparison is row by row across all eight stages, not on a single field. Every
 differing row is reported, not just the first.
 
     $ python3 examples/composition-verify.py
@@ -185,7 +185,7 @@ PSEA alone. That is the gap.
 The six vectors alone would pass even if branches of the checker were dead:
 all six reach `ACCEPT` and `EQUIVALENT` on the first two rows and differ only
 from `principal_linkage` onward, so no vector ever produces `NOT_EQUIVALENT`,
-`INDETERMINATE` or `REJECT`. The controls mutate one input at a time and pin the seven
+`INDETERMINATE` or `REJECT`. The controls mutate one input at a time and pin the eight
 rows that must follow. They run against in-memory copies; no committed vector is
 modified. The baseline is committed at
 [`negative-controls.json`](negative-controls.json) and CI runs it.

@@ -35,7 +35,7 @@ jobs:
         run: python3 tools/validate_interop_schema.py
       - name: Run composition checker (must be 6/6, compared row by row)
         run: python3 examples/composition-verify.py
-      - name: Run negative controls (must be 10/10, compared row by row)
+      - name: Run negative controls (must be 11/11, compared row by row)
         run: python3 tools/run_negative_controls.py
       - name: Verify composition vectors are reproducible
         run: |

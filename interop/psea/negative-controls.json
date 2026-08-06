@@ -5,6 +5,7 @@
     "action_linkage",
     "principal_linkage",
     "evidence_satisfaction",
+    "freshness",
     "decision",
     "admission",
     "outcome"
@@ -36,6 +37,9 @@
           "evidence_satisfaction": {
             "value": "UNSATISFIED",
             "reason": "evidence_covers_a_different_action"
+          },
+          "freshness": {
+            "value": "WELL_FORMED"
           },
           "decision": {
             "value": "REFUSED",
@@ -78,6 +82,9 @@
             "value": "UNSATISFIED",
             "reason": "principal_divergence"
           },
+          "freshness": {
+            "value": "WELL_FORMED"
+          },
           "decision": {
             "value": "REFUSED",
             "reason": "principal_divergence"
@@ -116,6 +123,10 @@
           "evidence_satisfaction": {
             "value": "UNSATISFIED",
             "reason": "invalid_signature"
+          },
+          "freshness": {
+            "value": "NOT_EVALUATED",
+            "reason": "secondary_unauthenticated"
           },
           "decision": {
             "value": "REFUSED",
@@ -158,6 +169,10 @@
             "value": "NOT_EVALUATED",
             "reason": "aae_not_admitted"
           },
+          "freshness": {
+            "value": "NOT_EVALUATED",
+            "reason": "aae_not_admitted"
+          },
           "decision": {
             "value": "REFUSED",
             "reason": "aae_native_reject"
@@ -194,6 +209,9 @@
           },
           "evidence_satisfaction": {
             "value": "SATISFIED"
+          },
+          "freshness": {
+            "value": "WELL_FORMED"
           },
           "decision": {
             "value": "AUTHORIZED"
@@ -232,6 +250,10 @@
             "reason": "action_linkage_unestablished"
           },
           "evidence_satisfaction": {
+            "value": "NOT_EVALUATED",
+            "reason": "action_linkage_unestablished"
+          },
+          "freshness": {
             "value": "NOT_EVALUATED",
             "reason": "action_linkage_unestablished"
           },
@@ -275,6 +297,10 @@
             "value": "NOT_EVALUATED",
             "reason": "action_linkage_unestablished"
           },
+          "freshness": {
+            "value": "NOT_EVALUATED",
+            "reason": "action_linkage_unestablished"
+          },
           "decision": {
             "value": "REFUSED",
             "reason": "action_linkage_unestablished"
@@ -315,6 +341,9 @@
             "value": "UNSATISFIED",
             "reason": "payload_digest_mismatch"
           },
+          "freshness": {
+            "value": "WELL_FORMED"
+          },
           "decision": {
             "value": "REFUSED",
             "reason": "payload_digest_mismatch"
@@ -353,6 +382,10 @@
             "reason": "action_linkage_unestablished"
           },
           "evidence_satisfaction": {
+            "value": "NOT_EVALUATED",
+            "reason": "action_linkage_unestablished"
+          },
+          "freshness": {
             "value": "NOT_EVALUATED",
             "reason": "action_linkage_unestablished"
           },
@@ -398,9 +431,59 @@
             "value": "UNSATISFIED",
             "reason": "invalid_signature"
           },
+          "freshness": {
+            "value": "NOT_EVALUATED",
+            "reason": "secondary_unauthenticated"
+          },
           "decision": {
             "value": "REFUSED",
             "reason": "secondary_native_reject"
+          },
+          "admission": {
+            "value": "NONE"
+          },
+          "outcome": {
+            "value": "NONE"
+          }
+        }
+      }
+    },
+    {
+      "id": "C11",
+      "name": "Signed token with psea_counter absent",
+      "base_vector": "xp-1-aligned-principal.json",
+      "mutation": {
+        "op": "resign_token_with_key",
+        "key": "psea-attacker-key.json",
+        "enroll_as": "psea-key-C11",
+        "set_claims": {
+          "psea_counter": null
+        }
+      },
+      "why": "The only control reaching CLAIMS_MALFORMED, and the only one that could. The fixture publishes its enrolled keys public-half only, so no token with different claims can be signed by an enrolled key. This control therefore models the relying party enrolling a further key: testkeys/psea-attacker-key.json is added to the enrolled list in memory under kid psea-key-C11, the same way C2 adds a resolution-table entry in memory, and the counterpart fixture on disk is untouched.\\n\\nThe token is then minted with psea_counter removed and signed with that now-enrolled key, RFC 6979 deterministic, so it reproduces byte for byte. The signature verifies, the digest binding holds, and the run reaches the freshness stage with a claim the profile requires missing. Without the enrollment step the signature would fail first and the stage would never be reached, which is why CLAIMS_MALFORMED was unreachable before this control existed.",
+      "status": "proposed - not yet recomputed by a second implementation",
+      "expected": {
+        "stages": {
+          "aae_native": {
+            "value": "ACCEPT",
+            "verification_step": 7
+          },
+          "action_linkage": {
+            "value": "EQUIVALENT"
+          },
+          "principal_linkage": {
+            "value": "SAME"
+          },
+          "evidence_satisfaction": {
+            "value": "SATISFIED"
+          },
+          "freshness": {
+            "value": "CLAIMS_MALFORMED",
+            "reason": "counter_malformed"
+          },
+          "decision": {
+            "value": "REFUSED",
+            "reason": "counter_malformed"
           },
           "admission": {
             "value": "NONE"

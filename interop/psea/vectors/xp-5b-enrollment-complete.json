@@ -97,6 +97,9 @@
       "evidence_satisfaction": {
         "value": "SATISFIED"
       },
+      "freshness": {
+        "value": "WELL_FORMED"
+      },
       "decision": {
         "value": "AUTHORIZED"
       },

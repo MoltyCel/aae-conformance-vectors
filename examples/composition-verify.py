@@ -12,13 +12,14 @@ SAME human both mandate the action and approve it. That needs two joins.
   WHAT  both sides commit to the same action    - 32-octet digest comparison
   WHO   both sides name the same principal      - declared resolution table
 
-The result is seven rows, not one verdict. Each row carries a value from its own
+The result is eight rows, not one verdict. Each row carries a value from its own
 closed enum and an optional reason:
 
   aae_native             ACCEPT | REJECT
   action_linkage         EQUIVALENT | NOT_EQUIVALENT | INDETERMINATE
   principal_linkage      SAME | DIVERGENT | UNRESOLVED
   evidence_satisfaction  SATISFIED | UNSATISFIED | NOT_EVALUATED
+  freshness              WELL_FORMED | CLAIMS_MALFORMED | NOT_EVALUATED
   decision               AUTHORIZED | REFUSED
   admission              NONE | RESERVED | CONSUMED | DISPATCH_PENDING | INVOKED
   outcome                EXECUTED | FAILED | INDETERMINATE | NONE
@@ -106,6 +107,7 @@ STAGE_ORDER = (
     "action_linkage",
     "principal_linkage",
     "evidence_satisfaction",
+    "freshness",
     "decision",
     "admission",
     "outcome",
@@ -292,6 +294,37 @@ def recompute_action_digest(payload) -> bytes:
     return hashlib.sha256(jcs.canonicalize(payload)).digest()
 
 
+def check_replay_claims(claims: dict) -> tuple[str, str | None]:
+    """Well-formedness of the counterpart profile's replay-defence claims.
+
+    draft-yossif-psea Section 3.11 anchors replay defence in psea_counter
+    (ordering), the global uniqueness of jti, and an OPTIONAL eat_nonce when the
+    verifier issued a challenge. Section 3.5 makes psea_counter and jti REQUIRED.
+
+    Checked here: presence and shape, from the token this checker has already
+    authenticated. psea_counter first, because it is the ordering anchor and a
+    missing one leaves the sequence undefined; jti second, as the uniqueness key.
+    The order is fixed so two implementations name the same failure on a token
+    that breaks both.
+
+    Not checked here, and not reachable from one presentation: whether the counter
+    advanced, whether the jti was already spent, whether a nonce answers an
+    outstanding challenge. Those are state across presentations.
+
+    iat and exp are also present in the token. They are verified during native
+    verification and stay out of this row: temporal validity of the authorization
+    is the AAE VALIDITY axis, and folding a second window into this stage would
+    put one fact on two rows.
+    """
+    counter = claims.get("psea_counter")
+    if not isinstance(counter, int) or isinstance(counter, bool) or counter < 0:
+        return "CLAIMS_MALFORMED", "counter_malformed"
+    jti = claims.get("jti")
+    if not isinstance(jti, str) or not jti.strip():
+        return "CLAIMS_MALFORMED", "jti_malformed"
+    return "WELL_FORMED", None
+
+
 def _row(value: str, reason: str | None = None, **extra) -> dict:
     row = {"value": value}
     if reason is not None:
@@ -301,7 +334,7 @@ def _row(value: str, reason: str | None = None, **extra) -> dict:
 
 
 def compose(vector: dict, fixture: dict, aae_verifier) -> dict:
-    """Return the seven staged rows. Every row is always present."""
+    """Return the eight staged rows. Every row is always present."""
     ctx = vector["input"]["context"]
     now = parse_time(ctx["current_time"])
     artifact = vector["input"]["secondary_artifact"]
@@ -327,6 +360,7 @@ def compose(vector: dict, fixture: dict, aae_verifier) -> dict:
             "action_linkage": _row("INDETERMINATE", "aae_not_admitted"),
             "principal_linkage": _row("UNRESOLVED", "aae_not_admitted"),
             "evidence_satisfaction": _row("NOT_EVALUATED", "aae_not_admitted"),
+            "freshness": _row("NOT_EVALUATED", "aae_not_admitted"),
             "decision": _row("REFUSED", "aae_native_reject"),
             **tail,
         }, "trace": trace}
@@ -344,6 +378,7 @@ def compose(vector: dict, fixture: dict, aae_verifier) -> dict:
             "action_linkage": _row("INDETERMINATE", "secondary_unauthenticated"),
             "principal_linkage": _row("UNRESOLVED", "secondary_unauthenticated"),
             "evidence_satisfaction": _row("UNSATISFIED", detail),
+            "freshness": _row("NOT_EVALUATED", "secondary_unauthenticated"),
             "decision": _row("REFUSED", "secondary_native_reject"),
             **tail,
         }, "trace": trace}
@@ -361,6 +396,7 @@ def compose(vector: dict, fixture: dict, aae_verifier) -> dict:
             "action_linkage": _row("INDETERMINATE", reason),
             "principal_linkage": _row("UNRESOLVED", "action_linkage_unestablished"),
             "evidence_satisfaction": _row("NOT_EVALUATED", "action_linkage_unestablished"),
+            "freshness": _row("NOT_EVALUATED", "action_linkage_unestablished"),
             "decision": _row("REFUSED", "action_linkage_unestablished"),
             **tail,
         }, "trace": trace}
@@ -457,9 +493,21 @@ def compose(vector: dict, fixture: dict, aae_verifier) -> dict:
         evidence_row = _row("UNSATISFIED", "principal_divergence")
         decision_reason = "principal_divergence"
 
+    # --- 5. Freshness: replay-defence claim shape, from the authenticated token ---
+    # The token verified in step 2, so re-decoding its payload reads authenticated
+    # bytes. verify_psea_proof returns a verdict rather than the claims, and
+    # re-decoding here keeps that signature unchanged.
+    psea_claims = json.loads(b64url_decode(artifact["token"].split(".")[1]))
+    fresh_value, fresh_reason = check_replay_claims(psea_claims)
+    trace.append(f"5 freshness={fresh_value}" + (f" ({fresh_reason})" if fresh_reason else ""))
+    freshness_row = _row(fresh_value, fresh_reason)
+
     authorized = (equivalent
                   and principal_row["value"] == "SAME"
-                  and evidence_row["value"] == "SATISFIED")
+                  and evidence_row["value"] == "SATISFIED"
+                  and fresh_value == "WELL_FORMED")
+    if decision_reason is None and fresh_value != "WELL_FORMED":
+        decision_reason = fresh_reason
     decision_row = _row("AUTHORIZED") if authorized else _row("REFUSED", decision_reason)
 
     return {"stages": {
@@ -467,6 +515,7 @@ def compose(vector: dict, fixture: dict, aae_verifier) -> dict:
         "action_linkage": action_row,
         "principal_linkage": principal_row,
         "evidence_satisfaction": evidence_row,
+        "freshness": freshness_row,
         "decision": decision_row,
         **tail,
     }, "trace": trace}

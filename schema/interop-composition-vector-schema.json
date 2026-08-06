@@ -238,12 +238,13 @@
         },
         "stages": {
           "type": "object",
-          "description": "Seven ordered stages, framework-neutral. Each is a row carrying a `value` from its own closed enum and an optional `reason`. The enums do not overlap across stages: INDETERMINATE on `action_linkage` (the linkage could not be established) and INDETERMINATE on `outcome` (what happened could not be established) are different facts about different stages and cannot be collapsed into one another, nor into UNRESOLVED on `principal_linkage`.",
+          "description": "Eight ordered stages, framework-neutral. Each is a row carrying a `value` from its own closed enum and an optional `reason`. The enums do not overlap across stages: INDETERMINATE on `action_linkage` (the linkage could not be established) and INDETERMINATE on `outcome` (what happened could not be established) are different facts about different stages and cannot be collapsed into one another, nor into UNRESOLVED on `principal_linkage`.",
           "required": [
             "aae_native",
             "action_linkage",
             "principal_linkage",
             "evidence_satisfaction",
+            "freshness",
             "decision",
             "admission",
             "outcome"
@@ -299,6 +300,18 @@
                   "type": "string",
                   "enum": ["SATISFIED", "UNSATISFIED", "NOT_EVALUATED"],
                   "description": "Whether the approval evidence satisfies the requirement for this action by this principal. SATISFIED: the evidence authenticates, covers this action, and comes from the mandating principal. UNSATISFIED: the evidence authenticates but does not satisfy the requirement, or does not authenticate at all. NOT_EVALUATED: satisfaction was not reached because a prerequisite stage did not establish what to evaluate against."
+                },
+                "reason": { "type": ["string", "null"] }
+              },
+              "unevaluatedProperties": false
+            },
+            "freshness": {
+              "allOf": [{ "$ref": "#/$defs/stage_row" }],
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "enum": ["WELL_FORMED", "CLAIMS_MALFORMED", "NOT_EVALUATED"],
+                  "description": "Whether the replay-defence claims the counterpart profile requires are present and well-formed in the signed token: psea_counter an integer at or above zero, jti a non-empty string (draft-yossif-psea Sections 3.5 and 3.11). WELL_FORMED: both hold. CLAIMS_MALFORMED: one is absent or of the wrong shape. NOT_EVALUATED: an earlier stage did not establish what to read them from. The token also carries iat and exp; those are checked in the native verification and are deliberately not folded into this row, because temporal validity of the grant is governed by the AAE VALIDITY axis. Counter monotonicity and jti uniqueness are state across presentations and are outside this row."
                 },
                 "reason": { "type": ["string", "null"] }
               },
@@ -385,7 +398,8 @@
                   "aae_native": { "properties": { "value": { "const": "ACCEPT" } } },
                   "action_linkage": { "properties": { "value": { "const": "EQUIVALENT" } } },
                   "principal_linkage": { "properties": { "value": { "const": "SAME" } } },
-                  "evidence_satisfaction": { "properties": { "value": { "const": "SATISFIED" } } }
+                  "evidence_satisfaction": { "properties": { "value": { "const": "SATISFIED" } } },
+                  "freshness": { "properties": { "value": { "const": "WELL_FORMED" } } }
                 }
               }
             }
@@ -449,6 +463,27 @@
                   "action_linkage": { "properties": { "value": { "const": "INDETERMINATE" } } },
                   "principal_linkage": { "properties": { "value": { "const": "UNRESOLVED" } } },
                   "evidence_satisfaction": { "properties": { "value": { "const": "NOT_EVALUATED" } } },
+                  "freshness": { "properties": { "value": { "const": "NOT_EVALUATED" } } },
+                  "decision": { "properties": { "value": { "const": "REFUSED" } } }
+                }
+              }
+            }
+          }
+        },
+        {
+          "description": "Malformed replay-defence claims carry a reason. The row names which claim failed, since psea_counter and jti fail for different reasons and a bare CLAIMS_MALFORMED leaves a reader unable to tell them apart.",
+          "if": {
+            "properties": {
+              "stages": {
+                "properties": { "freshness": { "properties": { "value": { "const": "CLAIMS_MALFORMED" } } } }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "stages": {
+                "properties": {
+                  "freshness": { "required": ["reason"], "properties": { "reason": { "type": "string", "minLength": 1 } } },
                   "decision": { "properties": { "value": { "const": "REFUSED" } } }
                 }
               }

@@ -2,7 +2,7 @@
 """Run the negative controls in interop/psea/negative-controls.json.
 
 Each control changes ONE input of a committed vector, in memory, and asserts the
-seven rows the checker must then report. Nothing on disk is modified. C7 is the
+eight rows the checker must then report. Nothing on disk is modified. C7 is the
 exception to "mutate": it substitutes a committed, separately signed envelope, so
 the checker meets real signed bytes rather than a run-time patch.
 
@@ -46,9 +46,13 @@ def load_checker():
     return module
 
 
-def apply_mutation(vector: dict, mutation: dict, cv) -> dict:
-    """Return a mutated copy of `vector`. One input, one change, no side effects."""
+def apply_mutation(vector: dict, mutation: dict, cv, fixture: dict | None = None):
+    """Return mutated copies of `vector` and `fixture`. One input, one change, no
+    side effects on the originals. The fixture copy exists so a control can model
+    a relying party enrolling a key, the same way add_resolution_entry models one
+    adding a principal mapping: in memory, touching no committed byte."""
     v = copy.deepcopy(vector)
+    fx = copy.deepcopy(fixture) if fixture is not None else None
     op = mutation["op"]
 
     if op == "set_current_time":
@@ -107,9 +111,29 @@ def apply_mutation(vector: dict, mutation: dict, cv) -> dict:
 
         header_b64, payload_b64, _ = v["input"]["secondary_artifact"]["token"].split(".")
         claims = json.loads(b64u_dec(payload_b64))
-        claims[mutation.get("embed_as", "cnf")] = {
-            "jwk": {k: attacker[k] for k in ("kty", "crv", "x", "y")}
-        }
+        if "embed_as" in mutation:
+            claims[mutation["embed_as"]] = {
+                "jwk": {k: attacker[k] for k in ("kty", "crv", "x", "y")}
+            }
+        for key, value in mutation.get("set_claims", {}).items():
+            if value is None:
+                claims.pop(key, None)
+            else:
+                claims[key] = value
+        if "enroll_as" in mutation:
+            # The relying party has enrolled this key. Modelled in memory, like the
+            # resolution-table entry C2 adds; the counterpart fixture on disk is
+            # untouched. Without it the token would fail signature resolution and
+            # the run would never reach the stage under test.
+            kid = mutation["enroll_as"]
+            fx["enrolled_keys"] = [k for k in fx["enrolled_keys"] if k.get("kid") != kid]
+            fx["enrolled_keys"].append(
+                {"kty": attacker["kty"], "crv": attacker["crv"],
+                 "kid": kid, "x": attacker["x"], "y": attacker["y"]})
+            v["input"]["secondary_artifact"]["signer_kid"] = kid
+            header = json.loads(b64u_dec(header_b64))
+            header["kid"] = kid
+            header_b64 = b64u(json.dumps(header, separators=(",", ":")).encode("utf-8"))
         forged_payload = b64u(json.dumps(claims, separators=(",", ":")).encode("utf-8"))
 
         private = ec.derive_private_key(
@@ -129,7 +153,7 @@ def apply_mutation(vector: dict, mutation: dict, cv) -> dict:
     else:
         raise SystemExit(f"unknown mutation op: {op!r}")
 
-    return v
+    return (v, fx) if fixture is not None else v
 
 
 def main() -> int:
@@ -154,8 +178,8 @@ def main() -> int:
         with open(base_path) as fh:
             vector = json.load(fh)
 
-        mutated = apply_mutation(vector, control["mutation"], cv)
-        got = cv.compose(mutated, fixture, aae_verifier)
+        mutated, mutated_fixture = apply_mutation(vector, control["mutation"], cv, fixture)
+        got = cv.compose(mutated, mutated_fixture, aae_verifier)
         diffs = cv.compare_stages(got["stages"], control["expected"]["stages"])
 
         label = f"{control['id']}  {control['name']}"

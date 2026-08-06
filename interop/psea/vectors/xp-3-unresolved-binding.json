@@ -98,6 +98,9 @@
       "evidence_satisfaction": {
         "value": "NOT_EVALUATED"
       },
+      "freshness": {
+        "value": "WELL_FORMED"
+      },
       "decision": {
         "value": "REFUSED"
       },
