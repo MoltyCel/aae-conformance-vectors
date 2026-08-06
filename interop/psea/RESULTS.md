@@ -216,7 +216,10 @@ modified. The baseline is committed at
     PASS  C10  Token carries its own key material and claims an enrolled kid
             ACCEPT | INDETERMINATE(secondary_unauthenticated) | UNRESOLVED(secondary_unauthenticated) | UNSATISFIED(invalid_signature) | REFUSED(secondary_native_reject) | NONE | NONE
 
-    10/10 negative controls passed (row-by-row)
+    PASS  C11  Signed token with psea_counter absent
+            ACCEPT | EQUIVALENT | SAME | SATISFIED | CLAIMS_MALFORMED(counter_malformed) | REFUSED(counter_malformed) | NONE | NONE
+
+    11/11 negative controls passed (row-by-row)
 
 Between them the controls reach every row value no vector produces:
 `NOT_EQUIVALENT` on `action_linkage` and three distinct causes of `INDETERMINATE`
