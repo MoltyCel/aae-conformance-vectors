@@ -1,0 +1,38 @@
+{
+  "note": "Everything a relying party needs to verify aae-envelope.jws offline. The DID document is testkeys/did-documents/agent-a.json from the aae-conformance-vectors repository, verbatim. It carries the public verification key only; no private key material is present in this fixture.",
+  "trust_decision": {
+    "trusted_issuers": [
+      "did:web:example.com:agent-a"
+    ],
+    "basis": "The relying party accepts did:web:example.com:agent-a as an issuer of AAE grants for this exchange. draft-kroehl-agentic-trust-aae-00 Section 5 step 1 additionally requires the signing DID to equal the credential issuer, which the reference verifier enforces; the trust decision itself is the relying party's and is recorded here so the reproduction is complete.",
+    "resolves_kid": "did:web:example.com:agent-a#key-1"
+  },
+  "did_documents": [
+    {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/suites/jws-2020/v1"
+      ],
+      "id": "did:web:example.com:agent-a",
+      "verificationMethod": [
+        {
+          "id": "did:web:example.com:agent-a#key-1",
+          "type": "JsonWebKey2020",
+          "controller": "did:web:example.com:agent-a",
+          "publicKeyJwk": {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "CP2VcUqdlf1XZ2tF-b33po62PVIhNL1jV04hJbZTYzc"
+          }
+        }
+      ],
+      "assertionMethod": [
+        "did:web:example.com:agent-a#key-1"
+      ],
+      "authentication": [
+        "did:web:example.com:agent-a#key-1"
+      ]
+    }
+  ],
+  "keys_are_test_only": "These keys are public and committed for reproducible vectors. Do not use them in production."
+}

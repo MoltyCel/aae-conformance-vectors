@@ -1,0 +1,13 @@
+{
+  "kid": "psea-attacker-key",
+  "note": "TEST ONLY \u2014 public/private keypair committed so negative control C10 is reproducible. This key is NOT enrolled: it appears in no enrolled_keys list in interop/psea/psea-fixture-v0.json and no DID document under testkeys/did-documents/. Its only use is to sign a PSEA token that claims a kid it does not hold. DO NOT USE IN PRODUCTION.",
+  "curve_note": "EC P-256, unlike the Ed25519 keys beside it: the counterpart profile draft-yossif-psea-02 signs with ES256, so an attacker key that a PSEA verifier would even attempt has to be on the same curve.",
+  "derivation": "Deterministic, so the control reproduces byte for byte without committing a signature: private scalar = int.from_bytes(sha256(b\"aae-conformance-vectors/psea-attacker-key/v1\"), \"big\") mod n, where n is the P-256 group order. The Ed25519 keys in this directory were generated randomly once by tools/genkeys.py and committed; this one is derivable instead, which a reviewer can check without trusting the committed bytes.",
+  "jwk": {
+    "kty": "EC",
+    "crv": "P-256",
+    "x": "aR2Sc57iF5vRE4b3Ch39pZlBuIwGfmObvThJfaGTjoQ",
+    "y": "6RyMk7fkw80_QHh8V-0vRXJ3c6-W64UUlsy8hk712Y8",
+    "d": "_ZkTSih0dA7M_RCCEhZEDxm0pzX5fKdCMxBaiQzNndQ"
+  }
+}

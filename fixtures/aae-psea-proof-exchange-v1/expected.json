@@ -1,0 +1,59 @@
+{
+  "note": "What a conforming implementation must reproduce from the three byte files in this directory. Two layers: the AAE profile's own verdict, and the composed seven-row result.",
+  "aae_native": {
+    "result": "ACCEPT",
+    "verification_step": 7,
+    "rejection_reason": null,
+    "algorithm": "draft-kroehl-agentic-trust-aae-00 Section 5, steps 1-7",
+    "evaluated_at": "2026-07-29T08:30:00Z",
+    "note": "Steps 8 and 9 do not apply: the grant carries no validity.revocation_check and no mandate.delegation."
+  },
+  "composition": {
+    "stage_order": [
+      "aae_native",
+      "action_linkage",
+      "principal_linkage",
+      "evidence_satisfaction",
+      "decision",
+      "admission",
+      "outcome"
+    ],
+    "stages": {
+      "aae_native": {
+        "value": "ACCEPT",
+        "verification_step": 7
+      },
+      "action_linkage": {
+        "value": "EQUIVALENT"
+      },
+      "principal_linkage": {
+        "value": "SAME",
+        "status": "PROPOSED"
+      },
+      "evidence_satisfaction": {
+        "value": "SATISFIED"
+      },
+      "decision": {
+        "value": "AUTHORIZED"
+      },
+      "admission": {
+        "value": "NONE"
+      },
+      "outcome": {
+        "value": "NONE"
+      }
+    },
+    "row": "ACCEPT | EQUIVALENT | SAME | SATISFIED | AUTHORIZED | NONE | NONE"
+  },
+  "who_axis_status": {
+    "value": "PROPOSED",
+    "applies_to": [
+      "principal_linkage",
+      "evidence_satisfaction",
+      "decision"
+    ],
+    "note": "principal_linkage SAME rests on a principal-resolution table that the counterpart profile has not confirmed. Until it does, that row and the two rows that follow from it are a proposal rather than a conformance target. aae_native and action_linkage do not depend on it: the AAE verdict comes from the draft's own algorithm, and the action digest was recomputed independently on both sides.",
+    "confirmation_removes": "the PROPOSED marker on principal_linkage"
+  },
+  "admission_outcome_note": "NONE on both rows records that the reference checker decides and neither admits nor executes. No value beyond NONE is exercised by this fixture."
+}

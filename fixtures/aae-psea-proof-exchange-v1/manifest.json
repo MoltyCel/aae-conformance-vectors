@@ -1,0 +1,36 @@
+{
+  "fixture": "aae-psea-proof-exchange-v1",
+  "purpose": "Byte-pinned AAE side of the AAE x PSEA proof exchange. Derived from vector xp-1-aligned-principal in this repository; nothing is re-signed and nothing is re-serialized.",
+  "pr": "https://github.com/MoltyCel/aae-conformance-vectors/pull/6",
+  "head_commit": "48450505c05c7182962c166781354e88412581e7",
+  "branch": "interop/psea-cross-run",
+  "source_vector": "interop/psea/vectors/xp-1-aligned-principal.json",
+  "jws_sha256": "c2db119de3f04a775a7c11afd1b78a6d6e03780ad84fc09f76ccb2ccac7c2b9b",
+  "jws_bytes": 1358,
+  "action_payload_sha256": "d6583cbc62c1278311ad311a586da207189693a98143f773a8fc960ae59ac606",
+  "action_payload_bytes": 114,
+  "signed_action_binding": "sha-256:1lg8vGLBJ4MRrTEaWG2iBxiWk6mBQ_dzqPyWCuWaxgY",
+  "alg": "EdDSA",
+  "kid": "did:web:example.com:agent-a#key-1",
+  "issuer": "did:web:example.com:agent-a",
+  "subject": "did:web:example.com:agent-001",
+  "mapping_profile": "draft-yossif-psea-02",
+  "mapping_profile_source": "xp-1-aligned-principal input.secondary_artifact.profile. CONFORMANCE.md refers to 'the mapping profile declared in the vector' without naming a dedicated identifier; this is that declaration, quoted rather than coined.",
+  "construction": "JCS (RFC 8785), sha-256, base64url-nopad",
+  "who_axis_status": "PROPOSED (pending WHO-axis confirmation)",
+  "counterpart_fixture_pin": {
+    "repository": "https://github.com/yuthent/psea-spec",
+    "path": "conformance/interop-aae/psea-fixture-v0.json",
+    "sha256": "f7d89f4df629d0b7318131ddfd8274c58ea96308c8aa557616baa4b88e60d188"
+  },
+  "byte_file_convention": "aae-envelope.jws and action-payload.json carry no trailing newline. The hashes above are over the whole file, so a newline would break them.",
+  "cross_check": "action_payload_sha256 equals the counterpart fixture's join_key.octets_hex, because the file holds exactly the JCS bytes the digest is taken over.",
+  "files": [
+    "aae-envelope.jws",
+    "action-payload.json",
+    "issuer-trust.json",
+    "expected.json",
+    "manifest.json",
+    "README.md"
+  ]
+}

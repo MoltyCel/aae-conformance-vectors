@@ -123,7 +123,30 @@ Mapping: runtime = {02 expired-not-after, 11 cascade-revocation};
 External implementers of related specifications can contribute vectors under
 `interop/<spec-name>/`. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
-Current external suites: (none yet — first PR pending)
+Current suites:
+
+- [`interop/psea/`](interop/psea/) — six composition vectors pairing an AAE
+  with a draft-yossif-psea-02 proof over the same action, against the fixture
+  published in [yuthent/psea-spec](https://github.com/yuthent/psea-spec)
+  (`conformance/interop-aae/`, pinned at sha256 `f7d89f4d…d188`). They test a
+  question neither profile answers alone: did the same human both mandate the
+  action and approve it. Two join axes — the action digest (**confirmed**, 32
+  octets recomputed identically on both sides) and the principal resolution
+  (**proposed**, awaiting confirmation from the PSEA side). All six vectors
+  carry `"status": "proposed"` and the set is not a conformance claim. Governed
+  by [`schema/interop-composition-vector-schema.json`](schema/interop-composition-vector-schema.json),
+  which extends rather than replaces the native vector schema.
+
+  Results are **eight staged rows**, not one composition verdict — `aae_native`,
+  `action_linkage`, `principal_linkage`, `evidence_satisfaction`, `freshness`,
+  `decision`, `admission`, `outcome`. The rows are framework-neutral: a coarser three-way
+  result is a documented collapse of them, and a profile with its own stage
+  vocabulary maps onto them. A single verdict column has to render a divergence
+  and a missing binding with the same token; the rows keep them apart. Two of the
+  six carry identical bytes and differ only in the relying party's enrollment
+  state, so the rows also show a refusal turning into an authorization with the
+  agent unchanged. A further vector has two AAE identifiers resolving to one
+  principal, where a string comparison would report a mismatch.
 
 ## Test keys
 
