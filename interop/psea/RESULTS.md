@@ -18,9 +18,10 @@ construction; the current value is whatever the file hashes to now.
 | Vectors | Controls | Recorded at | Published |
 |---|---|---|---|
 | 6 | 9 | commit `662c93f` | AAE side re-performed by EMILIA Protocol at `e8c00e5` |
-| 6 | 10 | this state — C10 added, uncommitted | — |
+| 6 | 10 | commit `5c8ddd2` — C10 added | — |
+| 6 | 11 | commit `d333611` — C11 added with the freshness stage | — |
 
-No vector or pre-existing control changed verdict or reason between the two
+No vector or pre-existing control changed verdict or reason across these
 states. The suite grew; nothing in it moved.
 
 ## Environment
@@ -264,9 +265,10 @@ controls are not all at the same point.
 | Controls | Standing |
 |---|---|
 | C1 – C9 | Recomputed independently. The AAE side of the exchange was re-performed by EMILIA Protocol from the byte-pinned fixture, in JavaScript with its own RFC 8785 implementation, and the digest and native verdict agree. |
-| **C10** | **New. Not yet recomputed by a second implementation.** The row below is this side's reading only. |
+| **C10** | **Not yet recomputed by a second implementation.** The row below is this side's reading only. |
+| **C11** | **Not yet recomputed by a second implementation.** Added with the freshness stage at `d333611`; no analysis section here yet. |
 
-C10 carries `"status": "proposed - not yet recomputed by a second
+C10 and C11 both carry `"status": "proposed - not yet recomputed by a second
 implementation"` in `negative-controls.json`, so the distinction is in the data
 rather than only in this file.
 
