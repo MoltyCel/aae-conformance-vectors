@@ -17,12 +17,22 @@ construction; the current value is whatever the file hashes to now.
 
 | Vectors | Controls | Recorded at | Published |
 |---|---|---|---|
-| 6 | 9 | commit `662c93f` | AAE side re-performed by EMILIA Protocol at `e8c00e5` |
+| 6 | 9 | commit `662c93f` | — |
 | 6 | 10 | commit `5c8ddd2` — C10 added | — |
 | 6 | 11 | commit `d333611` — C11 added with the freshness stage | — |
 
 No vector or pre-existing control changed verdict or reason across these
 states. The suite grew; nothing in it moved.
+
+The EMILIA Protocol re-performance sits outside this table. It ran against the
+frozen exchange fixture at `e8c00e5`, not against a state of the control set;
+its scope is recorded under "Confirmation status of the controls" below. The six
+files under `fixtures/aae-psea-proof-exchange-v1/` still hash exactly to the
+values it pinned. The seventh pinned file, `xp-1-aligned-principal.json`, has
+moved twice since: two status fields at `9e4ab54`, then an added `freshness` row
+at `d333611`. A re-performance needs the current vector hash
+`869376595e5b83f3e6354b22db2432fcdb600f9254035c503c673f7b0a03ff3a`; the
+artifacts it verified are unchanged.
 
 ## Environment
 
@@ -264,13 +274,33 @@ controls are not all at the same point.
 
 | Controls | Standing |
 |---|---|
-| C1 – C9 | Recomputed independently. The AAE side of the exchange was re-performed by EMILIA Protocol from the byte-pinned fixture, in JavaScript with its own RFC 8785 implementation, and the digest and native verdict agree. |
-| **C10** | **Not yet recomputed by a second implementation.** The row below is this side's reading only. |
-| **C11** | **Not yet recomputed by a second implementation.** Added with the freshness stage at `d333611`; no analysis section here yet. |
+| **C1 – C11** | **None has been recomputed by a second implementation.** Every row recorded above is this side's reading. |
 
-C10 and C11 both carry `"status": "proposed - not yet recomputed by a second
-implementation"` in `negative-controls.json`, so the distinction is in the data
-rather than only in this file.
+An earlier revision of this file credited C1 – C9 to the EMILIA Protocol
+re-performance. That was wrong in two ways, and the correction makes this set's
+evidence weaker rather than stronger.
+
+EMILIA's return states its own scope, and no negative control appears in it. At
+`e004e2173225775e5a8c7e6c44a22928db55a2c8` the file
+`interop/aae-psea-gate/independent-return.v1.json` pins seven files at
+`e8c00e5` (tag `pin/iman-return-e8c00e5`) and reports exact source bytes, a
+valid AAE signature, `aae_native: ACCEPT@7`, exact `action_payload_jcs`, a
+matching authenticated action binding, the 32-octet action digest, a valid gate
+attempt pair and `second_admission: NONE/already_consumed`. It records
+`principal_linkage: PROPOSED` and `psea_conformance: NOT_ESTABLISHED`. What was
+independently reproduced is that AAE-side surface, not the controls.
+
+Separately, C8 and C9 did not exist at the pinned commit. They arrived with
+`662c93f` on 2026-07-31 at 17:39 UTC, about ten hours after the return was
+recorded at 07:41 UTC; `e8c00e5` carries C1 – C7.
+
+C10 and C11 carry `"status": "proposed - not yet recomputed by a second
+implementation"` in `negative-controls.json`. C1 – C9 carry no status field, so
+for those the absence of an independent recompute is stated here rather than in
+the data.
+
+C11 was added with the freshness stage at `d333611` and has no analysis section
+here yet.
 
 ### C10 is a witness, and a weak one read alone
 

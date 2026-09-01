@@ -361,12 +361,13 @@ recorded as reported and has not been recomputed here.
 ## Reference implementation, this side
 
 Result on this set: **6/6**, compared row by row rather than on a single field.
-The nine negative controls in `negative-controls.json` reach the row values no
+The eleven negative controls in `negative-controls.json` reach the row values no
 vector produces — two distinct causes of `NOT_EQUIVALENT` on `action_linkage`
 (`join_mismatch`, `payload_digest_mismatch`), four of `INDETERMINATE` on it
 (`secondary_unauthenticated`, `aae_binding_mismatch`, `aae_binding_absent`,
 `payload_not_i_json`), `REJECT` on `aae_native`, and `DIVERGENT` from the same
-inputs that otherwise yield `UNRESOLVED` — and pass 9/9. Vectors and controls are complementary: the
+inputs that otherwise yield `UNRESOLVED` — and pass 11/11. None of them has been
+recomputed by a second implementation; see [RESULTS.md](RESULTS.md). Vectors and controls are complementary: the
 vectors cover what a relying party legitimately encounters, the controls cover
 the branches nothing legitimate reaches. See [RESULTS.md](RESULTS.md) for both
 runs and the integrity pins.
