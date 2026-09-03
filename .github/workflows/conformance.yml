@@ -31,6 +31,8 @@ jobs:
         run: |
           cd interop/psea
           shasum -a 256 -c psea-fixture-v0.sha256
+      - name: Validate enforce vectors against the enforce schema
+        run: python3 tools/validate_enforce_schema.py
       - name: Validate composition vectors against the extension schema
         run: python3 tools/validate_interop_schema.py
       - name: Run composition checker (must be 6/6, compared row by row)

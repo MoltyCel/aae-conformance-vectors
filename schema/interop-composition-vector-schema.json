@@ -31,7 +31,7 @@
     },
     "section_ref": {
       "type": "string",
-      "pattern": "draft-kroehl-agentic-trust-aae-00",
+      "pattern": "draft-kroehl-agentic-trust-aae-[0-9]{2}",
       "description": "AAE draft sections exercised on the AAE side, plus any counterpart-profile references."
     },
     "verification_mode": {
