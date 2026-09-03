@@ -33,6 +33,16 @@ jobs:
           shasum -a 256 -c psea-fixture-v0.sha256
       - name: Validate enforce vectors against the enforce schema
         run: python3 tools/validate_enforce_schema.py
+      - name: Run enforce reference verifier (must be 26/26)
+        run: python3 examples/enforce-verify.py
+      - name: Verify enforce vectors are reproducible from the committed test key
+        run: |
+          python3 tools/build_enforce_vectors.py
+          if ! git diff --quiet -- vectors/enforce/; then
+            echo "vectors/enforce/ differs from a fresh rebuild — commit the regenerated vectors"
+            git --no-pager diff -- vectors/enforce/
+            exit 1
+          fi
       - name: Validate composition vectors against the extension schema
         run: python3 tools/validate_interop_schema.py
       - name: Run composition checker (must be 6/6, compared row by row)
