@@ -72,6 +72,26 @@ Each vector has eight fields: `id`, `name`, `description`, `section_ref`,
 `verification_mode`, `input`, `expected`, and `rationale`. The format is defined
 by [`schema/vector-schema.json`](schema/vector-schema.json).
 
+### Three schemas, three vector families
+
+A vector's shape follows the machine it exercises, so the set carries three schemas
+rather than one widened one:
+
+| Schema | Governs | Input | Answers |
+|---|---|---|---|
+| [`vector-schema.json`](schema/vector-schema.json) | the 15 native vectors in `vectors/` | one JWS plus context | ACCEPT / REJECT at a numbered §5 step |
+| [`enforce-vector-schema.json`](schema/enforce-vector-schema.json) | `vectors/enforce/` | a mandate plus a transaction, or a record plus an authority proof | PERMIT / DENY / PENDING, or RATIFIED / REJECTED, with a recomputable core digest |
+| [`interop-composition-vector-schema.json`](schema/interop-composition-vector-schema.json) | `interop/*/vectors/` | one AAE plus one artifact from another profile | eight staged rows |
+
+Widening the native schema to admit the other two would mean dropping `secured_aae`
+from `required` and turning `result` into a union enum — after which a native vector
+missing its JWS, or claiming `PERMIT`, would still validate. Each schema keeps
+`additionalProperties: false` and its own closed enums instead.
+
+`section_ref` matches `draft-kroehl-agentic-trust-aae-[0-9]{2}` in all three, so a
+vector may cite the revision it actually tests. The existing vectors keep the `-00`
+references they were built against; that is provenance, not something to update.
+
 The `input.context` object carries the facts a verifier needs but that a static
 file cannot reproduce live: the current time (step 3), the requested action and
 action attributes (steps 6-7), the subject-binding challenge-response outcome
