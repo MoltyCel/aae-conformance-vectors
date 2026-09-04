@@ -92,6 +92,28 @@ missing its JWS, or claiming `PERMIT`, would still validate. Each schema keeps
 vector may cite the revision it actually tests. The existing vectors keep the `-00`
 references they were built against; that is provenance, not something to update.
 
+### Enforce vectors
+
+26 vectors under [`vectors/enforce/`](vectors/enforce/) cover draft -02: the type form and
+`action_binding` (10), the closed constraint language (8), the verdict vocabulary (3) and
+ratification with its three guards (5). Each states its expected verdict **and the core
+digest a conforming implementation has to reproduce from the input alone** — the digest is
+the conformance target, since a verifier that returns the right verdict from the wrong core
+has guessed the outcome rather than recomputed the decision.
+
+    $ python3 examples/enforce-verify.py
+    PASS  01-type-form-matches-permit.json               PERMIT
+    ...
+    26/26 enforce vectors passed
+
+All 26 were also reproduced by a second, separately written implementation — the deployed
+kernel behind `POST /enforce/check`. [`vectors/enforce/RESULTS.md`](vectors/enforce/RESULTS.md)
+records that run vector by vector.
+
+Because a domain tag is part of every digest, each vector states the tags it was built under
+and the kernel version that wrote them. A kernel on different tags computes different digests
+over identical input, so a vector that did not say which it assumed would be unfalsifiable.
+
 The `input.context` object carries the facts a verifier needs but that a static
 file cannot reproduce live: the current time (step 3), the requested action and
 action attributes (steps 6-7), the subject-binding challenge-response outcome
@@ -177,15 +199,32 @@ rebuilds and re-signs every vector from the keys.
 
 ## Versioning
 
-Vector set version: 1.1.0. Tracks: draft-kroehl-agentic-trust-aae-00.
+Vector set version: **1.3.0**.
 
-v1.1.0 adds the required `verification_mode` field (`runtime`|`structural`) to
-all 15 vectors and the schema (#2). No vector result or `verification_step`
-changed; this is additive metadata.
+The set no longer tracks a single draft revision, because its three families do not. Each
+vector states the revision it was built against in its own `section_ref`:
 
-Later revisions are published as 1.1.0, 1.2.0, and so on, tracking draft
-revisions. A change to the draft that alters a verifier outcome is a minor
-version bump with the changed vectors noted in the release.
+| Family | Count | Tracks |
+|---|---|---|
+| native, `vectors/` | 15 | draft-kroehl-agentic-trust-aae-00 |
+| composition, `interop/*/vectors/` | 6 | draft-kroehl-agentic-trust-aae-00 + draft-yossif-psea-02 |
+| enforce, `vectors/enforce/` | 26 | draft-kroehl-agentic-trust-aae-02 |
+
+The `-00` references in the first two are provenance, not staleness: -01 carried three
+editorial precisions and changed no field, no verification step and no normative
+requirement, so no vector result moved.
+
+**Release history.** v1.1.0 added the required `verification_mode` field
+(`runtime`|`structural`) to all 15 vectors and the schema (#2) — additive metadata, no
+result changed. v1.2.0 added the AAE×PSEA cross-run composition suite. v1.3.0 adds the
+enforce family: a third schema, 26 vectors against draft -02, and a reference verifier for
+them.
+
+*(This section read "1.1.0" until v1.3.0 while the v1.2.0 tag already existed. The line was
+not bumped when the composition suite landed; it is correct from here on.)*
+
+A change to a draft that alters a verifier outcome is a minor version bump, with the changed
+vectors noted in the release.
 
 ## Contributing
 
