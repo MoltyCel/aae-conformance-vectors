@@ -4,7 +4,7 @@
   "description": "prev_core_digest is well formed but names a record other than the one ratified.",
   "section_ref": "draft-kroehl-agentic-trust-aae-02",
   "kernel": "ratify",
-  "kernel_version": "2.0",
+  "kernel_version": "3.0",
   "domain_tags": {
     "statement": "aae:enforce-ratify-statement:v1",
     "core": "aae:enforce-ratify-core:v1"
@@ -12,21 +12,19 @@
   "input": {
     "prior_record": {
       "core": {
-        "enforce_version": "2.0",
+        "enforce_version": "3.0",
         "mandate_digest": "sha256:0400163a4a2d5dccb1f94e2bb8acbe75d30658016fe95fd7bb1520faec3e98a7",
         "transaction_digest": "sha256:4c17d7e8de44bf84838df729d67dafa6fe8b35a493299743c4944baece6875fe",
         "action_digest": "sha256:8c2938c57c38e44ed13ce9aef8a741bfc6e636fc60857c05c483078aa26cfb76",
         "verdict": "DENY",
         "grant_index": null,
-        "reason": "no matching grant satisfied its constraints",
         "trace": [
           {
             "predicate": "mandate_present",
             "field": null,
             "value": null,
             "bound": null,
-            "result": "PASS",
-            "reason": "mandate structurally valid"
+            "result": "PASS"
           },
           {
             "predicate": "type_fields",
@@ -41,16 +39,14 @@
               "asset",
               "chain"
             ],
-            "result": "PASS",
-            "reason": "action carries exactly the type_fields of grant(s) [0]"
+            "result": "PASS"
           },
           {
             "predicate": "action_binding",
             "field": "action",
             "value": "sha256:8c2938c57c38e44ed13ce9aef8a741bfc6e636fc60857c05c483078aa26cfb76",
             "bound": "sha256:8c2938c57c38e44ed13ce9aef8a741bfc6e636fc60857c05c483078aa26cfb76",
-            "result": "PASS",
-            "reason": "bound by grant(s) [0]"
+            "result": "PASS"
           },
           {
             "predicate": "range",
@@ -60,13 +56,12 @@
               "lo": 0,
               "hi": 100
             },
-            "result": "FAIL",
-            "reason": "outside range"
+            "result": "FAIL"
           }
         ],
         "prev_core_digest": null
       },
-      "core_digest": "sha256:1f3baf9163290df6c65466eae7186005e8585e88555755842386b83786067b7b"
+      "core_digest": "sha256:10c14bfbb6d53d4c3341f27081d2cba02a0c0fa287dafd023b4c76ae7f347629"
     },
     "decision": "APPROVED",
     "authority_proof": {
@@ -97,7 +92,7 @@
         ]
       },
       "authority": "did:web:example.com:registry",
-      "signature": "063c0d48d216db558dabd389210e6f5a3a916fe56423092e6b33bc28a0c48aab491bc67ba747d232854f11ddd16b91997ae4add131f7348c78176c3f243c7705"
+      "signature": "02ec03b5679e82367f15262f181f739931225e2f2cb4d568f112ce15c41ed0a847cf4f4ae6fe6eccf0cef326803de587cbcfd3746f958e1a845278c7bd281700"
     },
     "prev_core_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
   },

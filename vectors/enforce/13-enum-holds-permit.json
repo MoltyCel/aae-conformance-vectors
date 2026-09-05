@@ -4,7 +4,7 @@
   "description": "The region is a listed member.",
   "section_ref": "draft-kroehl-agentic-trust-aae-02",
   "kernel": "enforce_check",
-  "kernel_version": "2.0",
+  "kernel_version": "3.0",
   "domain_tags": {
     "action": "aae:enforce-action:v1",
     "mandate": "aae:enforce-mandate:v1",
@@ -49,7 +49,7 @@
   },
   "expected": {
     "verdict": "PERMIT",
-    "core_digest": "sha256:b76be0ea57726ada972dd80f002114f395c6c508c2e4084a406c07bc2118e4c0",
+    "core_digest": "sha256:f3179bfd753b2181f8ee30fd827b0fe42febc7c7a19d9d8cab4b3d84da1bb826",
     "trace": [
       {
         "predicate": "enum",

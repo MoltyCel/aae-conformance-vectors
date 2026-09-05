@@ -1,4 +1,4 @@
-# AAE Conformance Vectors v1.1.0
+# AAE Conformance Vectors v1.4.0
 
 Test vectors for the Agent Authorization Envelope (AAE) Internet-Draft,
 [draft-kroehl-agentic-trust-aae-00](https://datatracker.ietf.org/doc/draft-kroehl-agentic-trust-aae/).
@@ -114,6 +114,12 @@ Because a domain tag is part of every digest, each vector states the tags it was
 and the kernel version that wrote them. A kernel on different tags computes different digests
 over identical input, so a vector that did not say which it assumed would be unfalsifiable.
 
+The digests are computed against enforce kernel **3.0**, whose cores carry no free text:
+`reason` is read from the result and never digested, on the verdict as on every predicate in
+the trace. A core trace entry holds five fields — `predicate`, `field`, `value`, `bound`,
+`result`. Two implementations have to agree on the decision, not on the wording that explains
+it, and a vector that digested the wording would fail an implementation for a synonym.
+
 The `input.context` object carries the facts a verifier needs but that a static
 file cannot reproduce live: the current time (step 3), the requested action and
 action attributes (steps 6-7), the subject-binding challenge-response outcome
@@ -199,7 +205,7 @@ rebuilds and re-signs every vector from the keys.
 
 ## Versioning
 
-Vector set version: **1.3.0**.
+Vector set version: **1.4.0**.
 
 The set no longer tracks a single draft revision, because its three families do not. Each
 vector states the revision it was built against in its own `section_ref`:
@@ -208,7 +214,7 @@ vector states the revision it was built against in its own `section_ref`:
 |---|---|---|
 | native, `vectors/` | 15 | draft-kroehl-agentic-trust-aae-00 |
 | composition, `interop/*/vectors/` | 6 | draft-kroehl-agentic-trust-aae-00 + draft-yossif-psea-02 |
-| enforce, `vectors/enforce/` | 26 | draft-kroehl-agentic-trust-aae-02 |
+| enforce, `vectors/enforce/` | 26 | draft-kroehl-agentic-trust-aae-02, enforce kernel 3.0 |
 
 The `-00` references in the first two are provenance, not staleness: -01 carried three
 editorial precisions and changed no field, no verification step and no normative
@@ -218,10 +224,14 @@ requirement, so no vector result moved.
 (`runtime`|`structural`) to all 15 vectors and the schema (#2) — additive metadata, no
 result changed. v1.2.0 added the AAE×PSEA cross-run composition suite. v1.3.0 adds the
 enforce family: a third schema, 26 vectors against draft -02, and a reference verifier for
-them.
+them. v1.4.0 recomputes all 26 enforce digests against enforce kernel 3.0, which no longer
+digests `reason`. Same 26 vectors, same inputs, same verdicts and statuses — only the
+expected core digests move, and `kernel_version` goes 2.0 → 3.0 with them. The v1.3.0 tag
+stays as the pre-3.0 state.
 
 *(This section read "1.1.0" until v1.3.0 while the v1.2.0 tag already existed. The line was
-not bumped when the composition suite landed; it is correct from here on.)*
+not bumped when the composition suite landed; it is correct from here on. The title carried
+the same stale "1.1.0" until v1.4.0.)*
 
 A change to a draft that alters a verifier outcome is a minor version bump, with the changed
 vectors noted in the release.

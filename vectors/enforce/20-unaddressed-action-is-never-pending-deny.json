@@ -4,7 +4,7 @@
   "description": "The mandate holds a `transfer` grant; the transaction attempts `withdraw`.",
   "section_ref": "draft-kroehl-agentic-trust-aae-02",
   "kernel": "enforce_check",
-  "kernel_version": "2.0",
+  "kernel_version": "3.0",
   "domain_tags": {
     "action": "aae:enforce-action:v1",
     "mandate": "aae:enforce-mandate:v1",
@@ -46,7 +46,7 @@
   },
   "expected": {
     "verdict": "DENY",
-    "core_digest": "sha256:ea00da6c7f897ac90f7a59498002da122ab959dfeefe1f5c68f615bcf4d14679",
+    "core_digest": "sha256:b5e3eccb0a5bc006f02d4f92cfebb700d9478bd8cf4bae58937de5fde7c949b3",
     "reason_contains": "unaddressed action",
     "trace": [
       {

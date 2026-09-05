@@ -4,7 +4,7 @@
   "description": "type_fields repeats verb.",
   "section_ref": "draft-kroehl-agentic-trust-aae-02",
   "kernel": "enforce_check",
-  "kernel_version": "2.0",
+  "kernel_version": "3.0",
   "domain_tags": {
     "action": "aae:enforce-action:v1",
     "mandate": "aae:enforce-mandate:v1",
@@ -41,7 +41,7 @@
   },
   "expected": {
     "verdict": "DENY",
-    "core_digest": "sha256:de2bc93961f0208daffdc438bdd3b4499beddcc4d273e409e3cd73da7c5e59cf",
+    "core_digest": "sha256:ede64cff26d3722a7c9e6569433439faa9db61cc8af3ff97639be0052a27dd49",
     "reason_contains": "type_fields",
     "trace": [
       {

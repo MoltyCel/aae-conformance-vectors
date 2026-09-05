@@ -4,7 +4,7 @@
   "description": "The grant carries a constraint of type `regex`, which the closed set does not define.",
   "section_ref": "draft-kroehl-agentic-trust-aae-02",
   "kernel": "enforce_check",
-  "kernel_version": "2.0",
+  "kernel_version": "3.0",
   "domain_tags": {
     "action": "aae:enforce-action:v1",
     "mandate": "aae:enforce-mandate:v1",
@@ -46,7 +46,7 @@
   },
   "expected": {
     "verdict": "DENY",
-    "core_digest": "sha256:4a2586e4a1d2aeb3eb0f02cee5dd7ad6848f84ddf17aecba3a58650c944c789b",
+    "core_digest": "sha256:eee568f6d36af5ef1fa5336b18392cda9102d2e8aee6ae9996fb836cedf2ad45",
     "reason_contains": "no matching grant satisfied its constraints",
     "trace": [
       {

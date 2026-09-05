@@ -4,7 +4,7 @@
   "description": "The transaction's action is null rather than an object.",
   "section_ref": "draft-kroehl-agentic-trust-aae-02",
   "kernel": "enforce_check",
-  "kernel_version": "2.0",
+  "kernel_version": "3.0",
   "domain_tags": {
     "action": "aae:enforce-action:v1",
     "mandate": "aae:enforce-mandate:v1",
@@ -36,7 +36,7 @@
   },
   "expected": {
     "verdict": "DENY",
-    "core_digest": "sha256:3bab74b7376386586093daceebe2f702fe0ce57cc18a0581cc15a9ebd734d522",
+    "core_digest": "sha256:8bf759a957d7fa02cb5e42d3448e97944f0776822f6a9a81149dda8a43b409f1",
     "reason_contains": "action is not an object",
     "trace": [
       {

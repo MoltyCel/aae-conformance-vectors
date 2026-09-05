@@ -4,7 +4,7 @@
   "description": "The amount equals `hi`, which the closed interval includes.",
   "section_ref": "draft-kroehl-agentic-trust-aae-02",
   "kernel": "enforce_check",
-  "kernel_version": "2.0",
+  "kernel_version": "3.0",
   "domain_tags": {
     "action": "aae:enforce-action:v1",
     "mandate": "aae:enforce-mandate:v1",
@@ -47,7 +47,7 @@
   },
   "expected": {
     "verdict": "PERMIT",
-    "core_digest": "sha256:12ffd8acb72332ef3c7e86885defc263d801bb360c079335e607d6db0e693aa7",
+    "core_digest": "sha256:add761ca117ce6ebad7dbac686cde51de97680b4bf1828efd2b7905e58c5fbde",
     "trace": [
       {
         "predicate": "range",

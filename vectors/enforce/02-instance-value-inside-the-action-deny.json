@@ -4,7 +4,7 @@
   "description": "The action carries `amount`, which the grant's type_fields do not name.",
   "section_ref": "draft-kroehl-agentic-trust-aae-02",
   "kernel": "enforce_check",
-  "kernel_version": "2.0",
+  "kernel_version": "3.0",
   "domain_tags": {
     "action": "aae:enforce-action:v1",
     "mandate": "aae:enforce-mandate:v1",
@@ -53,7 +53,7 @@
   },
   "expected": {
     "verdict": "DENY",
-    "core_digest": "sha256:5c849b0c3a0809e9a39c69d3e8f741d1b5d98c2c73e07fa634fc9a81d6989415",
+    "core_digest": "sha256:2cfbb56ed54886193bd9bd9914274fcbd9a337d418c48675ba5fbc776eaf9ff8",
     "reason_contains": "outside type_fields ['amount']",
     "trace": [
       {

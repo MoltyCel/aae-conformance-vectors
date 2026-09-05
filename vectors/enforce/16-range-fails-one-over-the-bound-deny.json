@@ -4,7 +4,7 @@
   "description": "The amount is `hi` plus one.",
   "section_ref": "draft-kroehl-agentic-trust-aae-02",
   "kernel": "enforce_check",
-  "kernel_version": "2.0",
+  "kernel_version": "3.0",
   "domain_tags": {
     "action": "aae:enforce-action:v1",
     "mandate": "aae:enforce-mandate:v1",
@@ -47,7 +47,7 @@
   },
   "expected": {
     "verdict": "DENY",
-    "core_digest": "sha256:1f2170c20e75824dce730e2a91cb02453734a67c9e47dfcfda30c4b92ec06da8",
+    "core_digest": "sha256:8adafa0edc07c77e86a96a4c33ca2266b102c622681f65619b35abe97553980f",
     "trace": [
       {
         "predicate": "range",

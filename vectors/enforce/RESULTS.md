@@ -2,8 +2,22 @@
 
 Recorded run of the 26 enforce vectors and the cross-check that gives them their standing.
 
-Run date: 2026-09-03. Vector set version: 1.3.0. Tracks
-`draft-kroehl-agentic-trust-aae-02`.
+Run date: 2026-09-05. Vector set version: 1.4.0. Tracks
+`draft-kroehl-agentic-trust-aae-02`, enforce kernel 3.0.
+
+## What changed against 1.3.0
+
+Nothing but the digests. Kernel 3.0 keeps `reason` out of both cores — the verdict core and
+the ratification core — and out of every predicate entry inside them; a core trace entry
+carries `predicate`, `field`, `value`, `bound` and `result`, and nothing else. `reason` is
+still returned, still read, just not digested: free text whose wording two implementations do
+not have to agree on has no place in a value they must hit byte for byte.
+
+So all 26 expected core digests moved and `kernel_version` went 2.0 → 3.0 with them. No
+vector was added or removed, no input changed, no verdict or status changed, and the domain
+tags are the same `aae:…` family they were. Vectors 22 to 26 also carry new signatures and a
+new `ratifies`, because the prior record they ratify is itself a core that lost its free
+text. The v1.3.0 tag holds the pre-3.0 state.
 
 ## Why there are two implementations
 
@@ -27,6 +41,9 @@ agreement.
     tools/validate_enforce_schema.py   26/26 enforce vectors valid
     examples/enforce-verify.py         26/26 enforce vectors passed
     cross-check vs deployed kernel     26/26 vectors reproduced
+
+The cross-check runs the deployed kernel twice over: imported as a module, and called over
+the wire at `POST /enforce/check` and `POST /enforce/ratify`. Both routes reproduce all 26.
 
 Reproducibility: `tools/build_enforce_vectors.py` rewrites all 26 files byte for byte. The
 ratification signatures use the committed `testkeys/issuer-test-key-1.json`, so nothing in
@@ -74,7 +91,15 @@ Every vector is a determinism vector. `examples/enforce-verify.py` evaluates eac
 twice — once as committed, once with every object's keys in reverse order — and requires the
 same core digest from both. An implementation that serialised in insertion order rather than
 canonicalizing under RFC 8785 fails on the first vector rather than on some later one that
-happens to expose it.
+happens to expose it. The cross-check applies the same two evaluations to the deployed
+kernel, so the property is shown on both implementations rather than asserted on one.
+
+## `reason` is outside the digest
+
+Shown rather than stated: on vectors 01 (PERMIT), 16 (DENY), 19 (PENDING) and 22 (RATIFIED)
+the deployed kernel was made to write a different wording into every predicate entry, and the
+core digest came out unchanged and equal to the value the vector expects. A kernel that still
+digested the free text would have moved.
 
 ## What the set does not cover
 

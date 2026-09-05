@@ -4,7 +4,7 @@
   "description": "The grant omits type_fields entirely.",
   "section_ref": "draft-kroehl-agentic-trust-aae-02",
   "kernel": "enforce_check",
-  "kernel_version": "2.0",
+  "kernel_version": "3.0",
   "domain_tags": {
     "action": "aae:enforce-action:v1",
     "mandate": "aae:enforce-mandate:v1",
@@ -35,7 +35,7 @@
   },
   "expected": {
     "verdict": "DENY",
-    "core_digest": "sha256:7aa90d3a7d557be1730ea722d2208a698a36ac790608762150a025908fd29af1",
+    "core_digest": "sha256:94b96598cb31e2576d7dc73f0c2f08eb350e20dd12d042ef10068298f2fe0bb5",
     "reason_contains": "type_fields",
     "trace": [
       {
