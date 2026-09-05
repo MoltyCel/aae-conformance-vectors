@@ -11,6 +11,10 @@ every predicate the vector names, and the substring the reason must contain. The
 the point. A verifier that returns the right verdict from the wrong core has not
 reproduced the decision, only guessed its outcome.
 
+`reason` is diagnostic and stays out of both cores: it is read from the result, never
+digested. Two implementations have to agree on the decision, not on the wording that
+explains it.
+
 No network, no clock, no stored state — by construction, because the kernel it verifies
 has none either. Requires `jcs` (RFC 8785) and `cryptography` for the ratification
 signature.
@@ -46,8 +50,8 @@ TAG_CORE = b"aae:enforce-core:v1\x00"
 TAG_RATIFY_STATEMENT = b"aae:enforce-ratify-statement:v1\x00"
 TAG_RATIFY_CORE = b"aae:enforce-ratify-core:v1\x00"
 
-ENFORCE_VERSION = "2.0"
-RATIFY_VERSION = "2.0"
+ENFORCE_VERSION = "3.0"
+RATIFY_VERSION = "3.0"
 
 DISPOSITIONS = ("allow", "hold", "forbid")
 CONSTRAINT_TYPES = ("exact", "enum", "range")
@@ -76,8 +80,21 @@ def digest(tag: bytes, obj) -> str | None:
 
 
 def pred(predicate, field, result, reason, value=None, bound=None) -> dict:
+    """One entry of the predicate trace. It carries `reason` for the reader; the copy that
+    goes into the core does not — see `trace_for_core`."""
     return {"predicate": predicate, "field": field, "value": value,
             "bound": bound, "result": result, "reason": reason}
+
+
+# The fields that are digested. `reason` is not among them: free text whose wording two
+# implementations do not have to agree on has no place in a value they must hit byte for
+# byte (Section 2.5.2 / 2.5.3).
+DIGESTED_PRED_FIELDS = ("predicate", "field", "value", "bound", "result")
+
+
+def trace_for_core(trace) -> list:
+    """The trace as it enters the core: only the reproducible fields per entry."""
+    return [{k: e[k] for k in DIGESTED_PRED_FIELDS} for e in trace]
 
 
 # ------------------------------------------------------------------ Section 2.5 predicates
@@ -291,8 +308,7 @@ def enforce_check(mandate, transaction, prev_core_digest=None) -> dict:
         "action_digest": act_digest,
         "verdict": verdict,
         "grant_index": grant_index,
-        "reason": reason,
-        "trace": trace,
+        "trace": trace_for_core(trace),
         "prev_core_digest": prev_core_digest if isinstance(prev_core_digest, str) else None,
     }
     return {"verdict": verdict, "reason": reason, "grant_index": grant_index,
@@ -414,8 +430,7 @@ def ratify(prior_record, decision, authority_proof, prev_core_digest=None) -> di
         "status": status,
         "authority": authority_did,
         "mandate_digest": core["mandate_digest"],
-        "reason": reason,
-        "trace": trace,
+        "trace": trace_for_core(trace),
         "prev_core_digest": prev_core_digest if isinstance(prev_core_digest, str) else claimed,
     }
     return {"status": status, "decision": decision, "ratifies": claimed,

@@ -4,7 +4,7 @@
   "description": "A party not named in the mandate signs a correct statement with its own key.",
   "section_ref": "draft-kroehl-agentic-trust-aae-02",
   "kernel": "ratify",
-  "kernel_version": "2.0",
+  "kernel_version": "3.0",
   "domain_tags": {
     "statement": "aae:enforce-ratify-statement:v1",
     "core": "aae:enforce-ratify-core:v1"
@@ -12,21 +12,19 @@
   "input": {
     "prior_record": {
       "core": {
-        "enforce_version": "2.0",
+        "enforce_version": "3.0",
         "mandate_digest": "sha256:0400163a4a2d5dccb1f94e2bb8acbe75d30658016fe95fd7bb1520faec3e98a7",
         "transaction_digest": "sha256:4c17d7e8de44bf84838df729d67dafa6fe8b35a493299743c4944baece6875fe",
         "action_digest": "sha256:8c2938c57c38e44ed13ce9aef8a741bfc6e636fc60857c05c483078aa26cfb76",
         "verdict": "DENY",
         "grant_index": null,
-        "reason": "no matching grant satisfied its constraints",
         "trace": [
           {
             "predicate": "mandate_present",
             "field": null,
             "value": null,
             "bound": null,
-            "result": "PASS",
-            "reason": "mandate structurally valid"
+            "result": "PASS"
           },
           {
             "predicate": "type_fields",
@@ -41,16 +39,14 @@
               "asset",
               "chain"
             ],
-            "result": "PASS",
-            "reason": "action carries exactly the type_fields of grant(s) [0]"
+            "result": "PASS"
           },
           {
             "predicate": "action_binding",
             "field": "action",
             "value": "sha256:8c2938c57c38e44ed13ce9aef8a741bfc6e636fc60857c05c483078aa26cfb76",
             "bound": "sha256:8c2938c57c38e44ed13ce9aef8a741bfc6e636fc60857c05c483078aa26cfb76",
-            "result": "PASS",
-            "reason": "bound by grant(s) [0]"
+            "result": "PASS"
           },
           {
             "predicate": "range",
@@ -60,13 +56,12 @@
               "lo": 0,
               "hi": 100
             },
-            "result": "FAIL",
-            "reason": "outside range"
+            "result": "FAIL"
           }
         ],
         "prev_core_digest": null
       },
-      "core_digest": "sha256:1f3baf9163290df6c65466eae7186005e8585e88555755842386b83786067b7b"
+      "core_digest": "sha256:10c14bfbb6d53d4c3341f27081d2cba02a0c0fa287dafd023b4c76ae7f347629"
     },
     "decision": "APPROVED",
     "authority_proof": {
@@ -97,15 +92,15 @@
         ]
       },
       "authority": "did:web:example.com:stranger",
-      "signature": "152c2b22ceebebb964d0e33d43786ce990039aacc9d04a9277628bd4d94bceac9527f93e8e2cdb5e421f65029a8b323a5c12c4abfdc528775650ae754a545106"
+      "signature": "1fbcac3d32cb891bc24db22946d50f4e5885b48d9c7fa7c20535570c041b6a86df6cf83ae84e78c7ecdf989d696eee48aec1fd28266e836dd568076d6ab1bf0c"
     }
   },
   "expected": {
     "status": "REJECTED",
     "decision": "APPROVED",
-    "ratifies": "sha256:1f3baf9163290df6c65466eae7186005e8585e88555755842386b83786067b7b",
+    "ratifies": "sha256:10c14bfbb6d53d4c3341f27081d2cba02a0c0fa287dafd023b4c76ae7f347629",
     "authority": null,
-    "core_digest": "sha256:9d3f0c3369ff96335d4daadac771bf9f1987fed34583d7f39b49a7973b983474",
+    "core_digest": "sha256:8c8408b83a459a221f361210216f8aa153b5a0ca8bc0d301753c9d0d9c30c076",
     "reason_contains": "authority does not derive from the mandate",
     "trace": [
       {

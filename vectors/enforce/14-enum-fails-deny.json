@@ -4,7 +4,7 @@
   "description": "The region is outside the enumeration.",
   "section_ref": "draft-kroehl-agentic-trust-aae-02",
   "kernel": "enforce_check",
-  "kernel_version": "2.0",
+  "kernel_version": "3.0",
   "domain_tags": {
     "action": "aae:enforce-action:v1",
     "mandate": "aae:enforce-mandate:v1",
@@ -49,7 +49,7 @@
   },
   "expected": {
     "verdict": "DENY",
-    "core_digest": "sha256:2b0e91c1295dd133bb707f4b1296faef7ea977e71ecec275ca7e0dfaa8d5bf4d",
+    "core_digest": "sha256:404ba8a0b2dac8f21f498778f533d5bdc616f740364bd8c3531bd4deb001bbf7",
     "trace": [
       {
         "predicate": "enum",

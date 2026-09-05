@@ -4,7 +4,7 @@
   "description": "type_fields lists asset and chain but not verb.",
   "section_ref": "draft-kroehl-agentic-trust-aae-02",
   "kernel": "enforce_check",
-  "kernel_version": "2.0",
+  "kernel_version": "3.0",
   "domain_tags": {
     "action": "aae:enforce-action:v1",
     "mandate": "aae:enforce-mandate:v1",
@@ -39,7 +39,7 @@
   },
   "expected": {
     "verdict": "DENY",
-    "core_digest": "sha256:cfed931caa2d10de454fb23c945205a76f0bf6b10ee071280528910e3553536b",
+    "core_digest": "sha256:fd89f54c7db89345a9a5980339f9047552ed88a0b5e5bdae5f823b71cdab029b",
     "reason_contains": "type_fields",
     "trace": [
       {

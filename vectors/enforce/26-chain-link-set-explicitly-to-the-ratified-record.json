@@ -4,7 +4,7 @@
   "description": "prev_core_digest is supplied and equals the prior record's core digest.",
   "section_ref": "draft-kroehl-agentic-trust-aae-02",
   "kernel": "ratify",
-  "kernel_version": "2.0",
+  "kernel_version": "3.0",
   "domain_tags": {
     "statement": "aae:enforce-ratify-statement:v1",
     "core": "aae:enforce-ratify-core:v1"
@@ -12,21 +12,19 @@
   "input": {
     "prior_record": {
       "core": {
-        "enforce_version": "2.0",
+        "enforce_version": "3.0",
         "mandate_digest": "sha256:0400163a4a2d5dccb1f94e2bb8acbe75d30658016fe95fd7bb1520faec3e98a7",
         "transaction_digest": "sha256:4c17d7e8de44bf84838df729d67dafa6fe8b35a493299743c4944baece6875fe",
         "action_digest": "sha256:8c2938c57c38e44ed13ce9aef8a741bfc6e636fc60857c05c483078aa26cfb76",
         "verdict": "DENY",
         "grant_index": null,
-        "reason": "no matching grant satisfied its constraints",
         "trace": [
           {
             "predicate": "mandate_present",
             "field": null,
             "value": null,
             "bound": null,
-            "result": "PASS",
-            "reason": "mandate structurally valid"
+            "result": "PASS"
           },
           {
             "predicate": "type_fields",
@@ -41,16 +39,14 @@
               "asset",
               "chain"
             ],
-            "result": "PASS",
-            "reason": "action carries exactly the type_fields of grant(s) [0]"
+            "result": "PASS"
           },
           {
             "predicate": "action_binding",
             "field": "action",
             "value": "sha256:8c2938c57c38e44ed13ce9aef8a741bfc6e636fc60857c05c483078aa26cfb76",
             "bound": "sha256:8c2938c57c38e44ed13ce9aef8a741bfc6e636fc60857c05c483078aa26cfb76",
-            "result": "PASS",
-            "reason": "bound by grant(s) [0]"
+            "result": "PASS"
           },
           {
             "predicate": "range",
@@ -60,13 +56,12 @@
               "lo": 0,
               "hi": 100
             },
-            "result": "FAIL",
-            "reason": "outside range"
+            "result": "FAIL"
           }
         ],
         "prev_core_digest": null
       },
-      "core_digest": "sha256:1f3baf9163290df6c65466eae7186005e8585e88555755842386b83786067b7b"
+      "core_digest": "sha256:10c14bfbb6d53d4c3341f27081d2cba02a0c0fa287dafd023b4c76ae7f347629"
     },
     "decision": "DISAPPROVED",
     "authority_proof": {
@@ -97,16 +92,16 @@
         ]
       },
       "authority": "did:web:example.com:registry",
-      "signature": "e5789fdf181271766be888ada2651d03079e46ddcfaee0ff171cd79b83ced59f6ff8e8f4ac8a595324747085ec2968567291f41c418b942904e38b190c845d05"
+      "signature": "c536fb52699b72ca2da790d2f620378e59867c22a0bdb7b21e0fd13f1508c15427c343dee8cef4be8d7a96a2e1273a8452c7db5e41d7d3af7ef32e641070cd0a"
     },
-    "prev_core_digest": "sha256:1f3baf9163290df6c65466eae7186005e8585e88555755842386b83786067b7b"
+    "prev_core_digest": "sha256:10c14bfbb6d53d4c3341f27081d2cba02a0c0fa287dafd023b4c76ae7f347629"
   },
   "expected": {
     "status": "RATIFIED",
     "decision": "DISAPPROVED",
-    "ratifies": "sha256:1f3baf9163290df6c65466eae7186005e8585e88555755842386b83786067b7b",
+    "ratifies": "sha256:10c14bfbb6d53d4c3341f27081d2cba02a0c0fa287dafd023b4c76ae7f347629",
     "authority": "did:web:example.com:registry",
-    "core_digest": "sha256:72f3249d1b2459344cd48ec1197797c627fcae1fc45c2d7439dfc57e8477a128",
+    "core_digest": "sha256:d988b16e234101018625b605b00989f5c191265b57ef89ff81b77909d69b0c80",
     "reason_contains": "prior DENY -> DISAPPROVED"
   },
   "rationale": "The permitted half of Guard 3, and the DISAPPROVED half of the decision vocabulary. Supplying the link explicitly is allowed and yields the same record as leaving it out, because the fallback inserts the same value."

@@ -4,7 +4,7 @@
   "description": "The transaction's action is a string rather than an object.",
   "section_ref": "draft-kroehl-agentic-trust-aae-02",
   "kernel": "enforce_check",
-  "kernel_version": "2.0",
+  "kernel_version": "3.0",
   "domain_tags": {
     "action": "aae:enforce-action:v1",
     "mandate": "aae:enforce-mandate:v1",
@@ -36,7 +36,7 @@
   },
   "expected": {
     "verdict": "DENY",
-    "core_digest": "sha256:53a4f67f991d1e09880fb51c91266b27be40085b96df37086bf6ccdeeacb7f32",
+    "core_digest": "sha256:aaf3b886dce32a65abc1856f3fb14e9ca313c1263039cce4cd7f1ba9513c29de",
     "reason_contains": "action is not an object",
     "trace": [
       {

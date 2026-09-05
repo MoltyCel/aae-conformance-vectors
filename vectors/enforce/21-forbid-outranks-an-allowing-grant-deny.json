@@ -4,7 +4,7 @@
   "description": "Two grants bind the same action: the first allows, the second forbids.",
   "section_ref": "draft-kroehl-agentic-trust-aae-02",
   "kernel": "enforce_check",
-  "kernel_version": "2.0",
+  "kernel_version": "3.0",
   "domain_tags": {
     "action": "aae:enforce-action:v1",
     "mandate": "aae:enforce-mandate:v1",
@@ -62,7 +62,7 @@
   },
   "expected": {
     "verdict": "DENY",
-    "core_digest": "sha256:5a7cd00231edf83758ef4e682dcd969db0f24ca42951eb881b65e2f774fef540",
+    "core_digest": "sha256:c3754718e3628b440cc590c40a32465f3fdc14c26ecd53e6c03e312bf0749fbf",
     "grant_index": 1,
     "reason_contains": "disposition=forbid",
     "trace": [

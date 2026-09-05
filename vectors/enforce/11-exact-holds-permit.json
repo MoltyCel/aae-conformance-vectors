@@ -4,7 +4,7 @@
   "description": "The transaction's `to` equals the constraint value byte for byte.",
   "section_ref": "draft-kroehl-agentic-trust-aae-02",
   "kernel": "enforce_check",
-  "kernel_version": "2.0",
+  "kernel_version": "3.0",
   "domain_tags": {
     "action": "aae:enforce-action:v1",
     "mandate": "aae:enforce-mandate:v1",
@@ -46,7 +46,7 @@
   },
   "expected": {
     "verdict": "PERMIT",
-    "core_digest": "sha256:fb2d845a99454c93abee76abea1090c774f65e9d474aa5dcd6f1b43d82acf7ce",
+    "core_digest": "sha256:a40b362ecffb5f865ac774e95566bf68ed838e31cb59fa055cafdf326c538ccb",
     "trace": [
       {
         "predicate": "exact",

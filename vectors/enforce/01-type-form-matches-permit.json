@@ -4,7 +4,7 @@
   "description": "The action carries exactly the grant's type_fields and every constraint holds.",
   "section_ref": "draft-kroehl-agentic-trust-aae-02",
   "kernel": "enforce_check",
-  "kernel_version": "2.0",
+  "kernel_version": "3.0",
   "domain_tags": {
     "action": "aae:enforce-action:v1",
     "mandate": "aae:enforce-mandate:v1",
@@ -52,7 +52,7 @@
   },
   "expected": {
     "verdict": "PERMIT",
-    "core_digest": "sha256:ebf9a8f970ecf38a7c7fc0b6613ad36bb87e6e9ba5ba06baa5a9e981ee2142f1",
+    "core_digest": "sha256:92893c1fa6cf3033f70687dc3683857824979c0bde7b6e5eee97627d527b2c73",
     "grant_index": 0,
     "reason_contains": "all constraints hold",
     "trace": [

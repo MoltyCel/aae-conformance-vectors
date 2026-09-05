@@ -4,7 +4,7 @@
   "description": "The record offered for ratification is a PERMIT.",
   "section_ref": "draft-kroehl-agentic-trust-aae-02",
   "kernel": "ratify",
-  "kernel_version": "2.0",
+  "kernel_version": "3.0",
   "domain_tags": {
     "statement": "aae:enforce-ratify-statement:v1",
     "core": "aae:enforce-ratify-core:v1"
@@ -12,21 +12,19 @@
   "input": {
     "prior_record": {
       "core": {
-        "enforce_version": "2.0",
+        "enforce_version": "3.0",
         "mandate_digest": "sha256:0431d929c84749d065edd82b9ecb49ff53eb7ed012ea24a4077aeed549af17a7",
         "transaction_digest": "sha256:4c17d7e8de44bf84838df729d67dafa6fe8b35a493299743c4944baece6875fe",
         "action_digest": "sha256:8c2938c57c38e44ed13ce9aef8a741bfc6e636fc60857c05c483078aa26cfb76",
         "verdict": "PERMIT",
         "grant_index": 0,
-        "reason": "grant[0] matched, all constraints hold, disposition=allow",
         "trace": [
           {
             "predicate": "mandate_present",
             "field": null,
             "value": null,
             "bound": null,
-            "result": "PASS",
-            "reason": "mandate structurally valid"
+            "result": "PASS"
           },
           {
             "predicate": "type_fields",
@@ -41,24 +39,21 @@
               "asset",
               "chain"
             ],
-            "result": "PASS",
-            "reason": "action carries exactly the type_fields of grant(s) [0]"
+            "result": "PASS"
           },
           {
             "predicate": "action_binding",
             "field": "action",
             "value": "sha256:8c2938c57c38e44ed13ce9aef8a741bfc6e636fc60857c05c483078aa26cfb76",
             "bound": "sha256:8c2938c57c38e44ed13ce9aef8a741bfc6e636fc60857c05c483078aa26cfb76",
-            "result": "PASS",
-            "reason": "bound by grant(s) [0]"
+            "result": "PASS"
           },
           {
             "predicate": "exact",
             "field": "to",
             "value": "0xABCDEF0123456789ABCDEF0123456789ABCDEF01",
             "bound": "0xABCDEF0123456789ABCDEF0123456789ABCDEF01",
-            "result": "PASS",
-            "reason": "exact match"
+            "result": "PASS"
           },
           {
             "predicate": "range",
@@ -68,21 +63,19 @@
               "lo": 0,
               "hi": 1000
             },
-            "result": "PASS",
-            "reason": "within range"
+            "result": "PASS"
           },
           {
             "predicate": "disposition",
             "field": null,
             "value": "allow",
             "bound": null,
-            "result": "PASS",
-            "reason": "grant[0] matched, all constraints hold, disposition=allow"
+            "result": "PASS"
           }
         ],
         "prev_core_digest": null
       },
-      "core_digest": "sha256:9fbe196e7546e9c8816f375d602e40e97cbfded1b69b0407a4118ba4993d5432"
+      "core_digest": "sha256:41c2428b6a5259220ba8b94ba78fee053848e17d2522fa3a7c87b0f8dd9fa1bf"
     },
     "decision": "APPROVED",
     "authority_proof": {
@@ -118,7 +111,7 @@
         ]
       },
       "authority": "did:web:example.com:registry",
-      "signature": "876a60e8cb9869c7a6c74ebf5e24bf488f9541517d599eea13316c05db1e5af7abdd85eba38e231465ea62df8eb147993607233ae629f4137d9222c8af4a4102"
+      "signature": "696b8e69f3de3b1401ae8d7d9b72048d39b64dd453a9910aa7b6c6369aaca9241e278ad087877f9dd4c444190a74da18a8555e9b7b903f9381ffa6439f96840c"
     }
   },
   "expected": {

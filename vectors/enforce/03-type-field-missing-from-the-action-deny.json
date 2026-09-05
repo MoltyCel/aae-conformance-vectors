@@ -4,7 +4,7 @@
   "description": "The grant names verb, asset and chain; the action omits chain.",
   "section_ref": "draft-kroehl-agentic-trust-aae-02",
   "kernel": "enforce_check",
-  "kernel_version": "2.0",
+  "kernel_version": "3.0",
   "domain_tags": {
     "action": "aae:enforce-action:v1",
     "mandate": "aae:enforce-mandate:v1",
@@ -39,7 +39,7 @@
   },
   "expected": {
     "verdict": "DENY",
-    "core_digest": "sha256:3ce49eaaf20b9806ef9caec2246951dd0ca377f421c2a1b8d288e9d6e02638a1",
+    "core_digest": "sha256:740fa6343b9b79b97ff6578f6144398e9eedd2562c7a5781ac27d3ab03d05ef7",
     "reason_contains": "missing type_fields ['chain']",
     "trace": [
       {
