@@ -248,6 +248,11 @@ def check_link(child_vc: dict, parent_vc: dict, step: int = 9) -> None:
     parent = parent_vc["credentialSubject"]["aae"]
     deleg = child["mandate"]["delegation"]
 
+    # delegator_aae_id is "The id of the parent AAE" (-00 §3); the supplied
+    # parent must be that AAE (-02 §5 step 9: "delegator_aae_id names the parent").
+    if parent_vc["id"] != deleg.get("delegator_aae_id"):
+        raise Reject(step, "delegator_aae_id_mismatch")
+
     if parent_vc["credentialSubject"]["id"] != deleg.get("delegator_did"):
         raise Reject(step, "delegator_did_mismatch")
 
