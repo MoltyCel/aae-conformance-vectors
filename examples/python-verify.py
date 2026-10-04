@@ -251,6 +251,18 @@ def check_link(child_vc: dict, parent_vc: dict, step: int = 9) -> None:
     if parent_vc["credentialSubject"]["id"] != deleg.get("delegator_did"):
         raise Reject(step, "delegator_did_mismatch")
 
+    # A root parent must authorize onward delegation: "A root AAE that
+    # authorizes onward delegation MUST include a delegation_policy object in
+    # its MANDATE block with a non-negative integer max_depth member", and a
+    # relying party "MUST reject any delegation whose parent is a root AAE that
+    # has no delegation_policy" (-00 §3; same in -02). A policy without a
+    # non-negative integer max_depth does not meet the requirement either.
+    if parent["mandate"].get("delegation") is None:
+        policy = parent["mandate"].get("delegation_policy")
+        max_depth = policy.get("max_depth") if isinstance(policy, dict) else None
+        if not (isinstance(max_depth, int) and not isinstance(max_depth, bool) and max_depth >= 0):
+            raise Reject(step, "root_delegation_policy_missing")
+
     # optional parent-hash binding
     # (the secured parent JWS is rehashed by the caller; see verify())
 
