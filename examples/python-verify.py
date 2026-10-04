@@ -181,6 +181,14 @@ def check_constraints(aae: dict, action_ctx: dict, step: int = 7) -> None:
     """§5 step 7 / §2.3 constraint evaluation."""
     constraints = aae.get("constraints", {})
     for ctype, c in constraints.items():
+        if not isinstance(c, dict):
+            # A constraint value that is not an object (e.g. "resource":
+            # "repo:acme/*") cannot carry required:false, so the §2.3 default
+            # required:true applies. Unrecognized -> MUST reject; recognized but
+            # not evaluable -> MUST reject (-00 §2.3, §5 step 7; same in -02).
+            if ctype in RECOGNIZED_CONSTRAINTS:
+                raise Reject(step, "constraint_unevaluable")
+            raise Reject(step, "unrecognized_required_constraint")
         required = c.get("required", True)
         if ctype not in RECOGNIZED_CONSTRAINTS:
             if required:
