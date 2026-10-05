@@ -57,6 +57,43 @@ outcome, revocation responses, the consumed-id set) from each vector's `context`
 object. A production verifier performs those checks live; the vectors fix their
 results so the algorithm's branching is what gets tested.
 
+### Rejection reason codes
+
+`rejection_reason` is a free string in `schema/vector-schema.json`
+(`/properties/expected/properties/rejection_reason`, `{"type": ["string", "null"]}`),
+not an enum. The codes below are the ones the reference verifier emits. A vector's
+conformance target is `result` plus `verification_step`; the code is documented so
+that implementations can map their own diagnostics onto it.
+
+| Step | Codes |
+|------|-------|
+| 1 | `malformed_jws`, `malformed_header`, `alg_not_eddsa`, `kid_not_did_url`, `signing_did_unresolvable`, `vm_not_authorized_assertionMethod`, `verification_method_absent`, `key_not_ed25519`, `invalid_signature`, `payload_not_json`, `signing_authority_mismatch` |
+| 2 | `cty_not_aae_json`, `payload_not_object`, `missing_id_or_issuer`, `missing_credentialSubject`, `missing_aae_blocks` |
+| 3 | `not_yet_valid_not_before`, `expired_not_after` |
+| 4 | `subject_binding_failed` |
+| 5 | `single_use_already_consumed` |
+| 6 | `action_not_in_mandate` |
+| 7 | `unrecognized_required_constraint`, `constraint_unevaluable`, `currency_mismatch`, `max_transaction_value_exceeded`, `domain_not_in_allowlist`, `rate_limit_exceeded` |
+| 8 | `revocation_status_indeterminate`, `revoked` |
+| 9 | `delegation_cycle_detected`, `delegation_depth_exceeded`, `delegator_aae_hash_mismatch`, `delegator_aae_id_mismatch`, `delegator_did_mismatch`, `delegation_policy_missing`, `delegated_actions_not_subset`, `delegation_depth_inconsistent`, `delegation_max_depth_exceeds_parent`, `required_parent_constraint_dropped`, `delegation_currency_mismatch`, `delegated_constraint_relaxed`, `delegated_allowlist_not_subset`, `delegated_validity_widened`, `ancestor_revoked` |
+
+At step 9 the verifier also reports the step-1, step-2, step-3 and step-8 codes
+when an ancestor fails those checks, and `unrecognized_required_constraint` /
+`constraint_unevaluable` when an ancestor carries a constraint value that is not
+an object.
+
+New codes, not used by any vector:
+
+- `delegation_policy_missing` — a delegation whose parent is a root AAE without a
+  `delegation_policy` object carrying a non-negative integer `max_depth` (-00 §3).
+- `delegator_aae_id_mismatch` — the child's `delegation.delegator_aae_id` does not
+  equal the `id` of the supplied parent (-00 §3; -02 §5 step 9).
+
+A rejection may carry an optional `detail` string next to `rejection_reason`, for
+example `node 0 (root) has no delegation_policy`. Nodes are indexed from the root
+(node 0 = root AAE, the presented AAE = the highest index). `detail` is diagnostic
+and not part of the verdict.
+
 ## Production implementation status
 
 Two MolTrust production components evaluate authorization envelopes. Neither is a
