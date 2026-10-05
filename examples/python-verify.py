@@ -178,18 +178,29 @@ def check_revocation(vc: dict, ctx: dict, step: int, revoked_reason: str = "revo
         raise Reject(step, revoked_reason)
 
 
+def check_constraint_value_shapes(constraints: dict, step: int, node: int | None = None) -> None:
+    """Reject a constraint whose value is not an object.
+
+    A constraint value that is not an object (e.g. "resource": "repo:acme/*")
+    cannot carry required:false, so the §2.3 default required:true applies.
+    Unrecognized -> MUST reject; recognized but not evaluable -> MUST reject
+    (-00 §2.3, §5 step 7; same in -02). For an ancestor in the step-9 walk the
+    same mapping applies at step 9: ancestors skip step 7, and §3 requires
+    rejection where narrowing cannot be determined.
+    """
+    for ctype, c in constraints.items():
+        if not isinstance(c, dict):
+            detail = None if node is None else f"node {node} constraint {ctype!r} is not an object"
+            if ctype in RECOGNIZED_CONSTRAINTS:
+                raise Reject(step, "constraint_unevaluable", detail)
+            raise Reject(step, "unrecognized_required_constraint", detail)
+
+
 def check_constraints(aae: dict, action_ctx: dict, step: int = 7) -> None:
     """§5 step 7 / §2.3 constraint evaluation."""
     constraints = aae.get("constraints", {})
+    check_constraint_value_shapes(constraints, step)
     for ctype, c in constraints.items():
-        if not isinstance(c, dict):
-            # A constraint value that is not an object (e.g. "resource":
-            # "repo:acme/*") cannot carry required:false, so the §2.3 default
-            # required:true applies. Unrecognized -> MUST reject; recognized but
-            # not evaluable -> MUST reject (-00 §2.3, §5 step 7; same in -02).
-            if ctype in RECOGNIZED_CONSTRAINTS:
-                raise Reject(step, "constraint_unevaluable")
-            raise Reject(step, "unrecognized_required_constraint")
         required = c.get("required", True)
         if ctype not in RECOGNIZED_CONSTRAINTS:
             if required:
@@ -336,6 +347,7 @@ def verify_delegation(presented_vc: dict, ctx: dict, now: datetime, step: int = 
         jws = chain[node]
         header, vc, signing_did = verify_signature(jws, step=step)
         check_schema(header, vc, step=step)
+        check_constraint_value_shapes(vc["credentialSubject"]["aae"]["constraints"], step, node)
         check_signing_authority(vc, signing_did, step=step)
         check_temporal(vc["credentialSubject"]["aae"]["validity"], now, vc.get("validFrom"), step=step)
         check_revocation(vc, ctx, step=step, revoked_reason="ancestor_revoked")

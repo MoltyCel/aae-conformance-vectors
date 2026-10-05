@@ -61,7 +61,8 @@ def _root_aae(constraints: dict) -> str:
     return bv.sign_jws(bv.vc(ROOT_ID, bv.REGISTRY, bv.AGENT_001, aae), bv.REGISTRY_KEY)
 
 
-def _chain(delegation_policy=_UNSET, delegator_aae_id: str = ROOT_ID) -> tuple[str, list[str]]:
+def _chain(delegation_policy=_UNSET, delegator_aae_id: str = ROOT_ID,
+           root_constraints: dict | None = None) -> tuple[str, list[str]]:
     """registry -> agent-a (root, depth 0) -> agent-b (depth 1).
 
     Returns (presented child JWS, delegation_chain). With the defaults this is
@@ -70,7 +71,7 @@ def _chain(delegation_policy=_UNSET, delegator_aae_id: str = ROOT_ID) -> tuple[s
     policy = {"max_depth": 2} if delegation_policy is _UNSET else delegation_policy
     root = bv.vc(ROOT_ID, bv.REGISTRY, bv.AGENT_A, {
         "mandate": bv.root_mandate(["read", "book"], delegation_policy=policy),
-        "constraints": {"max_transaction_value": bv.max_tx(500, "USD")},
+        "constraints": root_constraints or {"max_transaction_value": bv.max_tx(500, "USD")},
         "validity": {"not_before": bv.NB, "not_after": bv.NA, "single_use": False},
     })
     root_jws = bv.sign_jws(root, bv.REGISTRY_KEY)
@@ -208,3 +209,23 @@ def test_delegator_aae_id_mismatch_detail_names_nodes_at_depth_2():
     assert got == _reject(
         9, "delegator_aae_id_mismatch",
         f"node 2 names delegator_aae_id {OTHER_ID!r}, but the supplied parent node 1 has id {CHILD_ID!r}")
+
+
+# --- fix (a) for ancestors: non-object constraint value during the step-9 walk
+
+@pytest.mark.parametrize("root_constraints, reason, ctype", [
+    ({"max_transaction_value": {"value": 500, "currency": "USD", "required": True},
+      "resource": "repo:acme/*"},
+     "unrecognized_required_constraint", "resource"),
+    ({"max_transaction_value": "500 USD"},
+     "constraint_unevaluable", "max_transaction_value"),
+], ids=["unrecognized-key-string-value", "recognized-key-string-value"])
+def test_ancestor_string_constraint_value_rejected_at_step9(root_constraints, reason, ctype):
+    """Ancestors do not pass through step 7 (-00 §5 step 9 applies steps 1-3
+    and 8 to them), so a non-object constraint value in an ancestor reached the
+    §3 monotonicity comparison in check_link and raised AttributeError. It is
+    rejected at step 9 with the same code mapping as fix (a): the value cannot
+    carry required:false, so the §2.3 default required:true applies."""
+    child_jws, chain = _chain(root_constraints=root_constraints)
+    got = verifier.verify(child_jws, _context(delegation_chain=chain))
+    assert got == _reject(9, reason, f"node 0 constraint {ctype!r} is not an object")
