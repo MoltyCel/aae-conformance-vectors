@@ -66,7 +66,7 @@ For specs other than AAE (APS, x402, action_ref, etc.):
    python3 tools/build_vectors.py && git diff --quiet -- vectors/
    ```
    For a change to `examples/python-verify.py`, also run its unit tests
-   (`pip install pytest`; not part of CI):
+   (`pip install pytest`; CI runs them too):
    ```
    python3 -m pytest tests/
    ```
