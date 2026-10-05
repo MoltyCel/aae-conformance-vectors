@@ -234,133 +234,73 @@ def type_shape_problem(action, type_fields):
 
 
 # --------------------------------------------- Section 5 step 9, grant attenuation
+#
+# Read as written. Every grant in the child is covered by a grant in the parent with an
+# equal action_binding, a disposition no more permissive (allow <= hold <= forbid), and
+# constraints the child's constraints imply. Implication is defined per type: exact
+# equal, enum a subset, range nested. A parent constraint with no implying child
+# constraint of the same type on the same field removes a bound. An unrecognized type
+# passes only where parent and child carry it identically.
 
-# Allow is the most permissive, forbid the least. A child may move a disposition up this
-# order, never down.
 DISPOSITION_ORDER = {"allow": 0, "hold": 1, "forbid": 2}
 MAX_ANCESTORS = 8
 
 
-def value_set(c):
-    """The values a Section 2.5 constraint lets through, or None if it lets none through.
-
-    exact and enum yield ("s", set of strings); range yields ("i", lo, hi). Anything the
-    predicates of Section 2.5 always fail — unknown type, malformed value, unusable path —
-    lets nothing through.
-    """
-    if not isinstance(c, dict):
-        return None
-    path = c.get("field")
-    if not isinstance(path, str) or not path:
-        return None
-    parts = path.split(".")
-    if len(parts) > MAX_FIELD_DEPTH or "" in parts:
-        return None
-    kind = c.get("type")
+def constraint_implied(cc, pc) -> bool:
+    """Does child constraint `cc` imply parent constraint `pc`? Same type, same field."""
+    if not isinstance(cc, dict) or not isinstance(pc, dict):
+        return False
+    if cc.get("type") != pc.get("type") or cc.get("field") != pc.get("field"):
+        return False
+    kind = pc.get("type")
     if kind == "exact":
-        return ("s", {c["value"]}) if isinstance(c.get("value"), str) else None
+        return isinstance(pc.get("value"), str) and cc.get("value") == pc.get("value")
     if kind == "enum":
-        vals = c.get("values")
-        if not isinstance(vals, list) or not vals or len(vals) > MAX_ENUM_MEMBERS:
-            return None
-        strings = {v for v in vals if isinstance(v, str)}
-        return ("s", strings) if strings else None
+        cv, pv = cc.get("values"), pc.get("values")
+        return (isinstance(cv, list) and isinstance(pv, list) and bool(cv)
+                and all(isinstance(v, str) and v in pv for v in cv))
     if kind == "range":
-        lo, hi = c.get("lo"), c.get("hi")
-        if is_int(lo) and is_int(hi) and lo <= hi:
-            return ("i", lo, hi)
-    return None
-
-
-def inside(a, b) -> bool:
-    """Every value `a` lets through, `b` lets through."""
-    if a is None:
-        return True
-    if b is None or a[0] != b[0]:
-        return False
-    return a[1] <= b[1] if a[0] == "s" else (b[1] <= a[1] and a[2] <= b[2])
-
-
-def overlap(a, b) -> bool:
-    """Some value gets through both."""
-    if a is None or b is None or a[0] != b[0]:
-        return False
-    return bool(a[1] & b[1]) if a[0] == "s" else (a[1] <= b[2] and b[1] <= a[2])
-
-
-def never_applies(g) -> bool:
-    return any(value_set(c) is None for c in g["constraints"])
+        clo, chi, plo, phi = cc.get("lo"), cc.get("hi"), pc.get("lo"), pc.get("hi")
+        if not all(is_int(x) for x in (clo, chi, plo, phi)):
+            return False
+        return plo <= clo and chi <= phi
+    return cc == pc
 
 
 def implies(child_grant, parent_grant) -> str | None:
-    """None if the child's constraints imply the parent's, else which parent bound is lost."""
+    """None if the child's constraints imply every parent constraint, else the lost bound."""
     for pc in parent_grant["constraints"]:
-        target = value_set(pc)
-        pfield = pc.get("field") if isinstance(pc, dict) else None
-        held = any(isinstance(cc, dict) and cc.get("field") == pfield and
-                   inside(value_set(cc), target) for cc in child_grant["constraints"])
-        if not held:
+        if not any(constraint_implied(cc, pc) for cc in child_grant["constraints"]):
             ptype = pc.get("type") if isinstance(pc, dict) else None
+            pfield = pc.get("field") if isinstance(pc, dict) else None
             return f"parent constraint {ptype} on {pfield!r} is absent or not narrowed"
     return None
 
 
-def may_overlap(g1, g2) -> bool:
-    """False only if no transaction can satisfy both grants' constraints."""
-    if never_applies(g1) or never_applies(g2):
-        return False
-    for c1 in g1["constraints"]:
-        for c2 in g2["constraints"]:
-            if (isinstance(c1, dict) and isinstance(c2, dict)
-                    and c1.get("field") == c2.get("field")
-                    and not overlap(value_set(c1), value_set(c2))):
-                return False
-    return True
-
-
 def attenuation_problem(child, parent) -> str | None:
-    """Section 5 step 9: the child mandate's grants stay inside the parent's."""
+    """Section 5 step 9: every child grant is covered by a parent grant."""
     for label, m in (("child", child), ("parent", parent)):
         p = mandate_problem(m)
         if p is not None:
             return f"{label} {p}"
     parent_grants = parent["grants"]
     for i, g in enumerate(child["grants"]):
-        binding = g["action_binding"]
-        peers = [(j, q) for j, q in enumerate(parent_grants) if q["action_binding"] == binding]
+        peers = [(j, q) for j, q in enumerate(parent_grants)
+                 if q["action_binding"] == g["action_binding"]]
         if not peers:
             return f"grant[{i}] binds an action no parent grant binds"
-        # A forbid denies; a grant that can never apply decides nothing. Neither widens.
-        if g["disposition"] == "forbid" or never_applies(g):
-            continue
-        # A parent forbid denies the action whatever else the parent says (Section 2.2.3
-        # step 5), so the child may not hold or allow it.
-        if any(q["disposition"] == "forbid" for _j, q in peers):
-            return (f"grant[{i}] disposition={g['disposition']} for an action the parent "
-                    f"forbids")
         lost_disposition = lost_constraint = None
-        covered = False
         for j, q in peers:
             if DISPOSITION_ORDER[g["disposition"]] < DISPOSITION_ORDER[q["disposition"]]:
-                if lost_disposition is None:
-                    lost_disposition = (f"grant[{i}] disposition {g['disposition']} is broader "
-                                        f"than parent grant[{j}] {q['disposition']}")
+                lost_disposition = lost_disposition or (
+                    f"grant[{i}] disposition {g['disposition']} is broader than parent "
+                    f"grant[{j}] {q['disposition']}")
                 continue
             why = implies(g, q)
-            if why is None and g["disposition"] == "allow":
-                # The parent stops at its first grant whose constraints hold. An earlier
-                # hold that can fire on the same transactions would make it PENDING where
-                # the child would PERMIT.
-                for k, r in peers:
-                    if k < j and r["disposition"] == "hold" and may_overlap(g, r):
-                        why = f"parent grant[{k}] holds first on the same transactions"
-                        break
             if why is None:
-                covered = True
                 break
-            if lost_constraint is None:
-                lost_constraint = f"grant[{i}] vs parent grant[{j}]: {why}"
-        if not covered:
+            lost_constraint = lost_constraint or f"grant[{i}] vs parent grant[{j}]: {why}"
+        else:
             return lost_constraint or lost_disposition
     return None
 
