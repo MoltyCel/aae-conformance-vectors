@@ -65,6 +65,11 @@ For specs other than AAE (APS, x402, action_ref, etc.):
    python3 examples/python-verify.py
    python3 tools/build_vectors.py && git diff --quiet -- vectors/
    ```
+   For a change to `examples/python-verify.py`, also run its unit tests
+   (`pip install pytest`; CI runs them too):
+   ```
+   python3 -m pytest tests/
+   ```
 3. Open PR against `main`
 4. CI must pass (schema-validate + verifier 15/15 + byte-identical rebuild check)
 5. Reviewer: @MoltyCel
