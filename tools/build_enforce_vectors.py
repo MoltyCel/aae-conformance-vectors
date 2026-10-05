@@ -6,7 +6,8 @@ vectors is the committed `testkeys/issuer-test-key-1.json`, so re-running reprod
 file byte for byte — the same property CI checks for the native and composition sets.
 
 Expected digests come from examples/enforce-verify.py, which implements the enforce kernel
-of draft-kroehl-agentic-trust-aae-02 from the draft text. They are cross-checked against a
+of draft-kroehl-agentic-trust-aae-02 from the draft text. Vectors 27-29 add an `ancestors`
+input and exercise the grant attenuation of Section 5 step 9. They are cross-checked against a
 second, separately written implementation — the deployed kernel behind
 POST https://api.moltrust.ch/enforce/check — and the run is recorded in
 vectors/enforce/RESULTS.md. Neither implementation was derived from the other.
@@ -94,8 +95,8 @@ def tx(action=_UNSET, **rest):
 
 
 def check_vector(n, name, description, m, transaction, rationale,
-                 trace=None, reason_contains=None, grant_index=None):
-    got = ev.enforce_check(m, transaction)
+                 trace=None, reason_contains=None, grant_index=None, ancestors=None):
+    got = ev.enforce_check(m, transaction, None, ancestors)
     v = {
         "id": f"aae-enforce-vector-{n:02d}",
         "name": name,
@@ -108,6 +109,8 @@ def check_vector(n, name, description, m, transaction, rationale,
         "expected": {"verdict": got["verdict"], "core_digest": got["core_digest"]},
         "rationale": rationale,
     }
+    if ancestors is not None:
+        v["input"]["ancestors"] = ancestors
     if grant_index is not None:
         v["expected"]["grant_index"] = got["grant_index"]
     if reason_contains:
@@ -401,6 +404,59 @@ def build():
         "leaving it out, because the fallback inserts the same value.",
         prev=prior_deny["core_digest"],
         reason_contains="prior DENY -> DISAPPROVED"))
+
+    # --- grant attenuation across a delegation hop (Section 5 step 9) -----------------
+    # Each vector hands over the presented mandate plus its parent as `ancestors`. The
+    # transaction fits the parent's bound in all three, so the verdict turns on the hop.
+    RANGE_5000 = {"type": "range", "field": "amount", "lo": 0, "hi": 5000}
+    RANGE_100 = {"type": "range", "field": "amount", "lo": 0, "hi": 100}
+    root = mandate(grant("allow", [EXACT, RANGE]))
+
+    out.append(check_vector(
+        27, "Grant widened at hop — deny",
+        "The delegated mandate raises the parent's amount bound from 1000 to 5000. The "
+        "transaction moves 500, inside both bounds.",
+        mandate(grant("allow", [EXACT, RANGE_5000])), tx(),
+        "Section 5 step 9: every child grant has to be covered by a parent grant whose "
+        "constraints it implies. A range that reaches past the parent's is not, and the hop "
+        "is denied before any grant of the presented mandate is evaluated. That the "
+        "transaction itself would pass the parent shows the verdict turns on the hop, not on "
+        "the transaction.",
+        trace=[{"predicate": "mandate_present", "result": "PASS"},
+               {"predicate": "grant_attenuation", "field": "ancestors[0]", "result": "FAIL"}],
+        reason_contains="hop 0", grant_index=True, ancestors=[root]))
+
+    out.append(check_vector(
+        28, "Grant narrowed at hop — permit",
+        "The delegated mandate keeps the recipient and lowers the amount bound to 100. The "
+        "transaction moves 50.",
+        mandate(grant("allow", [EXACT, RANGE_100])), tx(to=ADDR, amount=50, region="CH"),
+        "The positive half of 27. The hop passes, is recorded with the child and parent "
+        "mandate digests as value and bound, and grant evaluation runs as for an undelegated "
+        "mandate.",
+        trace=[{"predicate": "grant_attenuation", "field": "ancestors[0]", "result": "PASS"},
+               {"predicate": "type_fields", "result": "PASS"},
+               {"predicate": "action_binding", "result": "PASS"},
+               {"predicate": "disposition", "result": "PASS"}],
+        reason_contains="all constraints hold", grant_index=True, ancestors=[root]))
+
+    PURPOSE = {"type": "enum", "field": "purpose_code", "values": ["travel.booking"]}
+    PURPOSE_WIDE = {"type": "enum", "field": "purpose_code",
+                    "values": ["travel.booking", "finance.payment"]}
+    out.append(check_vector(
+        29, "Purpose enum grant widened — deny",
+        "The parent limits purpose_code to travel.booking; the delegated mandate adds "
+        "finance.payment. The transaction declares travel.booking.",
+        mandate(grant("allow", [PURPOSE_WIDE, RANGE])),
+        tx(to=ADDR, amount=500, purpose_code="travel.booking"),
+        "A purpose is narrowed with the means draft -02 already has: an enum constraint on a "
+        "transaction field, attenuated like any other. mandate.purpose stays a free-text "
+        "audit field and is not evaluated. A child enum that is a superset of the parent's "
+        "widens the purpose and is denied, even for a transaction whose own purpose the "
+        "parent allows.",
+        trace=[{"predicate": "grant_attenuation", "field": "ancestors[0]", "result": "FAIL"}],
+        reason_contains="purpose_code", grant_index=True,
+        ancestors=[mandate(grant("allow", [PURPOSE, RANGE]))]))
 
     return out
 
