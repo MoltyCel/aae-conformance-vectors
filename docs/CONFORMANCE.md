@@ -94,6 +94,9 @@ example `node 0 (root) has no delegation_policy`. Nodes are indexed from the roo
 (node 0 = root AAE, the presented AAE = the highest index). `detail` is diagnostic
 and not part of the verdict.
 
+`detail` is informational and not authoritative when comparing two runs: runs are
+compared by `result`, `verification_step` and `rejection_reason` only.
+
 ## Production implementation status
 
 Two MolTrust production components evaluate authorization envelopes. Neither is a
