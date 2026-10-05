@@ -90,8 +90,11 @@ def _chain(delegation_policy=_UNSET, delegator_aae_id: str = ROOT_ID) -> tuple[s
     return bv.sign_jws(child, bv.AGENT_A_KEY), [root_jws]
 
 
-def _reject(step: int, reason: str) -> dict:
-    return {"result": "REJECT", "verification_step": step, "rejection_reason": reason}
+def _reject(step: int, reason: str, detail: str | None = None) -> dict:
+    out = {"result": "REJECT", "verification_step": step, "rejection_reason": reason}
+    if detail is not None:
+        out["detail"] = detail
+    return out
 
 
 # --- control -----------------------------------------------------------------
@@ -125,15 +128,19 @@ def test_string_constraint_value_rejected_at_step7(constraints, reason):
 
 # --- fix (b): delegation from a root without a usable delegation_policy ------
 
-@pytest.mark.parametrize("policy", [
-    None,                  # no delegation_policy member at all
-    {},                    # object without max_depth
-    {"max_depth": -1},     # max_depth not non-negative
-    {"max_depth": "2"},    # max_depth not an integer
-    {"max_depth": True},   # JSON boolean is not an integer
-    "max_depth=2",         # delegation_policy not an object
-], ids=["absent", "empty-object", "negative", "string", "boolean", "not-object"])
-def test_delegation_from_root_without_delegation_policy_rejected(policy):
+NO_POLICY = "node 0 (root) has no delegation_policy"
+BAD_MAX_DEPTH = "node 0 (root) has a delegation_policy without a non-negative integer max_depth"
+
+
+@pytest.mark.parametrize("policy, detail", [
+    (None, NO_POLICY),                    # no delegation_policy member at all
+    ("max_depth=2", NO_POLICY),           # delegation_policy not an object
+    ({}, BAD_MAX_DEPTH),                  # object without max_depth
+    ({"max_depth": -1}, BAD_MAX_DEPTH),   # max_depth not non-negative
+    ({"max_depth": "2"}, BAD_MAX_DEPTH),  # max_depth not an integer
+    ({"max_depth": True}, BAD_MAX_DEPTH), # JSON boolean is not an integer
+], ids=["absent", "not-object", "empty-object", "negative", "string", "boolean"])
+def test_delegation_from_root_without_delegation_policy_rejected(policy, detail):
     """-00 §3 (-02 §3): "A root AAE that authorizes onward delegation MUST
     include a delegation_policy object in its MANDATE block with a non-negative
     integer max_depth member" and a relying party "MUST reject any delegation
@@ -141,7 +148,7 @@ def test_delegation_from_root_without_delegation_policy_rejected(policy):
     in §5 step 9."""
     child_jws, chain = _chain(delegation_policy=policy)
     got = verifier.verify(child_jws, _context(delegation_chain=chain))
-    assert got == _reject(9, "root_delegation_policy_missing")
+    assert got == _reject(9, "delegation_policy_missing", detail)
 
 
 # --- fix (c): delegator_aae_id must name the supplied parent -----------------
@@ -152,7 +159,9 @@ def test_delegator_aae_id_mismatch_rejected():
     "mandate.delegation.delegator_aae_id names the parent")."""
     child_jws, chain = _chain(delegator_aae_id=OTHER_ID)
     got = verifier.verify(child_jws, _context(delegation_chain=chain))
-    assert got == _reject(9, "delegator_aae_id_mismatch")
+    assert got == _reject(
+        9, "delegator_aae_id_mismatch",
+        f"node 1 names delegator_aae_id {OTHER_ID!r}, but the supplied parent node 0 has id {ROOT_ID!r}")
 
 
 # --- fix (a), reached through examples/composition-verify.py -----------------
@@ -177,3 +186,25 @@ def test_composition_verify_string_constraint_value_rejected():
     assert stages["aae_native"] == {
         "value": "REJECT", "reason": "unrecognized_required_constraint", "verification_step": 7}
     assert stages["decision"]["value"] == "REFUSED"
+
+
+def test_delegator_aae_id_mismatch_detail_names_nodes_at_depth_2():
+    """Node indices count from the root: in registry -> agent-a -> agent-b ->
+    agent-c the presented AAE is node 2 and its parent node 1."""
+    mid_jws, chain = _chain()
+    leaf = bv.vc("urn:uuid:7e570000-0000-4000-8000-0000000000c2", bv.AGENT_B, bv.AGENT_C, {
+        "mandate": {
+            "actions": ["read"],
+            "delegation": {
+                "delegator_did": bv.AGENT_B, "delegator_aae_id": OTHER_ID,
+                "delegator_aae_uri": "https://aae.example/p/" + OTHER_ID,
+                "depth": 2, "max_depth": 2,
+            },
+        },
+        "constraints": {"max_transaction_value": bv.max_tx(100, "USD")},
+        "validity": {"not_before": bv.NB, "not_after": bv.NA, "single_use": False},
+    })
+    got = verifier.verify(bv.sign_jws(leaf, bv.AGENT_B_KEY), _context(delegation_chain=chain + [mid_jws]))
+    assert got == _reject(
+        9, "delegator_aae_id_mismatch",
+        f"node 2 names delegator_aae_id {OTHER_ID!r}, but the supplied parent node 1 has id {CHILD_ID!r}")

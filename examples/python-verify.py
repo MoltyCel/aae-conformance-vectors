@@ -42,10 +42,11 @@ ALLOWLIST_CONSTRAINTS = {"allowed_domains"}
 
 
 class Reject(Exception):
-    def __init__(self, step: int, reason: str):
+    def __init__(self, step: int, reason: str, detail: str | None = None):
         super().__init__(reason)
         self.step = step
         self.reason = reason
+        self.detail = detail  # optional human-readable context; not part of the verdict
 
 
 # --- helpers -----------------------------------------------------------------
@@ -242,8 +243,13 @@ def effective_max_depth(vc: dict) -> int | None:
     return policy.get("max_depth") if policy else None
 
 
-def check_link(child_vc: dict, parent_vc: dict, step: int = 9) -> None:
-    """§3 monotonicity + depth rules for one delegation link."""
+def check_link(child_vc: dict, parent_vc: dict, step: int = 9,
+               child_node: int | None = None, parent_node: int | None = None) -> None:
+    """§3 monotonicity + depth rules for one delegation link.
+
+    child_node / parent_node index the AAEs on the verification path counted
+    from the root (node 0 = the root AAE, the presented AAE = the highest
+    index). They only feed the detail text of a rejection."""
     child = child_vc["credentialSubject"]["aae"]
     parent = parent_vc["credentialSubject"]["aae"]
     deleg = child["mandate"]["delegation"]
@@ -251,7 +257,9 @@ def check_link(child_vc: dict, parent_vc: dict, step: int = 9) -> None:
     # delegator_aae_id is "The id of the parent AAE" (-00 §3); the supplied
     # parent must be that AAE (-02 §5 step 9: "delegator_aae_id names the parent").
     if parent_vc["id"] != deleg.get("delegator_aae_id"):
-        raise Reject(step, "delegator_aae_id_mismatch")
+        raise Reject(step, "delegator_aae_id_mismatch",
+                     f"node {child_node} names delegator_aae_id {deleg.get('delegator_aae_id')!r}, "
+                     f"but the supplied parent node {parent_node} has id {parent_vc['id']!r}")
 
     if parent_vc["credentialSubject"]["id"] != deleg.get("delegator_did"):
         raise Reject(step, "delegator_did_mismatch")
@@ -265,8 +273,13 @@ def check_link(child_vc: dict, parent_vc: dict, step: int = 9) -> None:
     if parent["mandate"].get("delegation") is None:
         policy = parent["mandate"].get("delegation_policy")
         max_depth = policy.get("max_depth") if isinstance(policy, dict) else None
+        if not isinstance(policy, dict):
+            raise Reject(step, "delegation_policy_missing",
+                         f"node {parent_node} (root) has no delegation_policy")
         if not (isinstance(max_depth, int) and not isinstance(max_depth, bool) and max_depth >= 0):
-            raise Reject(step, "root_delegation_policy_missing")
+            raise Reject(step, "delegation_policy_missing",
+                         f"node {parent_node} (root) has a delegation_policy without a "
+                         f"non-negative integer max_depth")
 
     # optional parent-hash binding
     # (the secured parent JWS is rehashed by the caller; see verify())
@@ -316,17 +329,20 @@ def verify_delegation(presented_vc: dict, ctx: dict, now: datetime, step: int = 
     """§5 step 9 delegation chain verification."""
     chain = ctx.get("delegation_chain", [])
     # verify each ancestor's signature + schema + temporal + revocation, build VC list
+    # Node indices count from the root: chain[0] is node 0 and the presented
+    # AAE is node len(chain). They are used for rejection detail text only.
     ancestors = []
-    for jws in reversed(chain):  # immediate parent first
+    for node in range(len(chain) - 1, -1, -1):  # immediate parent first
+        jws = chain[node]
         header, vc, signing_did = verify_signature(jws, step=step)
         check_schema(header, vc, step=step)
         check_signing_authority(vc, signing_did, step=step)
         check_temporal(vc["credentialSubject"]["aae"]["validity"], now, vc.get("validFrom"), step=step)
         check_revocation(vc, ctx, step=step, revoked_reason="ancestor_revoked")
-        ancestors.append((jws, vc))
+        ancestors.append((jws, vc, node))
 
     # cycle detection: AAE id MUST NOT appear more than once in the path
-    path_ids = [presented_vc["id"]] + [vc["id"] for _, vc in ancestors]
+    path_ids = [presented_vc["id"]] + [vc["id"] for _, vc, _ in ancestors]
     if len(set(path_ids)) != len(path_ids):
         raise Reject(step, "delegation_cycle_detected")
 
@@ -336,15 +352,15 @@ def verify_delegation(presented_vc: dict, ctx: dict, now: datetime, step: int = 
         raise Reject(step, "delegation_depth_exceeded")
 
     # walk links from presented upward
-    child_vc = presented_vc
-    for jws, parent_vc in ancestors:
+    child_vc, child_node = presented_vc, len(chain)
+    for jws, parent_vc, parent_node in ancestors:
         # optional parent-hash binding
         child_deleg = child_vc["credentialSubject"]["aae"]["mandate"]["delegation"]
         h = child_deleg.get("delegator_aae_hash")
         if h is not None and h != jws_hash(jws):
             raise Reject(step, "delegator_aae_hash_mismatch")
-        check_link(child_vc, parent_vc, step=step)
-        child_vc = parent_vc
+        check_link(child_vc, parent_vc, step=step, child_node=child_node, parent_node=parent_node)
+        child_vc, child_node = parent_vc, parent_node
 
 
 def verify(secured_aae: str, ctx: dict) -> dict:
@@ -381,7 +397,10 @@ def verify(secured_aae: str, ctx: dict) -> dict:
             last_step = 9
         return {"result": "ACCEPT", "verification_step": last_step, "rejection_reason": None}
     except Reject as r:
-        return {"result": "REJECT", "verification_step": r.step, "rejection_reason": r.reason}
+        out = {"result": "REJECT", "verification_step": r.step, "rejection_reason": r.reason}
+        if r.detail is not None:
+            out["detail"] = r.detail
+        return out
 
 
 def main() -> int:
