@@ -227,7 +227,12 @@ enforce family: a third schema, 26 vectors against draft -02, and a reference ve
 them. v1.4.0 recomputes all 26 enforce digests against enforce kernel 3.0, which no longer
 digests `reason`. Same 26 vectors, same inputs, same verdicts and statuses — only the
 expected core digests move, and `kernel_version` goes 2.0 → 3.0 with them. The v1.3.0 tag
-stays as the pre-3.0 state.
+stays as the pre-3.0 state. Unreleased: the reference verifier rejects malformed constraint
+values, a delegation from a root AAE without `delegation_policy`, and a `delegator_aae_id`
+that does not name the supplied parent, with two new step-9 codes
+(`delegation_policy_missing`, `delegator_aae_id_mismatch`); `docs/CONFORMANCE.md` gains a
+table of every rejection reason code the verifier emits. No vector and no expected result
+changed.
 
 *(This section read "1.1.0" until v1.3.0 while the v1.2.0 tag already existed. The line was
 not bumped when the composition suite landed; it is correct from here on. The title carried
