@@ -153,3 +153,27 @@ def test_delegator_aae_id_mismatch_rejected():
     child_jws, chain = _chain(delegator_aae_id=OTHER_ID)
     got = verifier.verify(child_jws, _context(delegation_chain=chain))
     assert got == _reject(9, "delegator_aae_id_mismatch")
+
+
+# --- fix (a), reached through examples/composition-verify.py -----------------
+
+def test_composition_verify_string_constraint_value_rejected():
+    """composition-verify.py runs python-verify.verify() unmodified as its
+    aae_native stage (composition-verify.py, compose()), with no exception
+    handling around it, so the step-7 AttributeError surfaced there as well."""
+    import copy
+    import json
+
+    composition = _load("composition_verify", "examples/composition-verify.py")
+    with open(os.path.join(ROOT, "interop/psea/vectors/xp-1-aligned-principal.json")) as fh:
+        vector = json.load(fh)
+    with open(os.path.join(ROOT, "interop/psea/psea-fixture-v0.json")) as fh:
+        fixture = json.load(fh)
+    vector = copy.deepcopy(vector)
+    vector["input"]["secured_aae"] = _root_aae(
+        {"max_transaction_value": bv.max_tx(500, "USD"), "resource": "repo:acme/*"})
+    vector["input"]["context"].update(_context())
+    stages = composition.compose(vector, fixture, composition.load_aae_verifier())["stages"]
+    assert stages["aae_native"] == {
+        "value": "REJECT", "reason": "unrecognized_required_constraint", "verification_step": 7}
+    assert stages["decision"]["value"] == "REFUSED"
