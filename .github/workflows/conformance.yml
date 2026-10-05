@@ -33,7 +33,7 @@ jobs:
           shasum -a 256 -c psea-fixture-v0.sha256
       - name: Validate enforce vectors against the enforce schema
         run: python3 tools/validate_enforce_schema.py
-      - name: Run enforce reference verifier (must be 26/26)
+      - name: Run enforce reference verifier (must be 29/29)
         run: python3 examples/enforce-verify.py
       - name: Verify enforce vectors are reproducible from the committed test key
         run: |

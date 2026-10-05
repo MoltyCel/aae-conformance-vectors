@@ -94,9 +94,10 @@ references they were built against; that is provenance, not something to update.
 
 ### Enforce vectors
 
-26 vectors under [`vectors/enforce/`](vectors/enforce/) cover draft -02: the type form and
-`action_binding` (10), the closed constraint language (8), the verdict vocabulary (3) and
-ratification with its three guards (5). Each states its expected verdict **and the core
+29 vectors under [`vectors/enforce/`](vectors/enforce/) cover draft -02: the type form and
+`action_binding` (10), the closed constraint language (8), the verdict vocabulary (3),
+ratification with its three guards (5), and grant attenuation across a delegation hop
+(3, Section 5 step 9, over an optional `ancestors` input). Each states its expected verdict **and the core
 digest a conforming implementation has to reproduce from the input alone** — the digest is
 the conformance target, since a verifier that returns the right verdict from the wrong core
 has guessed the outcome rather than recomputed the decision.
@@ -104,10 +105,11 @@ has guessed the outcome rather than recomputed the decision.
     $ python3 examples/enforce-verify.py
     PASS  01-type-form-matches-permit.json               PERMIT
     ...
-    26/26 enforce vectors passed
+    29/29 enforce vectors passed
 
-All 26 were also reproduced by a second, separately written implementation — the deployed
-kernel behind `POST /enforce/check`. [`vectors/enforce/RESULTS.md`](vectors/enforce/RESULTS.md)
+All 29 were also reproduced by a second implementation — the deployed kernel behind
+`POST /enforce/check`. For 01–26 that implementation was written separately; for 27–29 both
+sides came from the same author on the same day, which RESULTS.md states. [`vectors/enforce/RESULTS.md`](vectors/enforce/RESULTS.md)
 records that run vector by vector.
 
 Because a domain tag is part of every digest, each vector states the tags it was built under
@@ -205,7 +207,8 @@ rebuilds and re-signs every vector from the keys.
 
 ## Versioning
 
-Vector set version: **1.4.0**.
+Vector set version: **1.4.0** (tagged). The enforce family on this branch is prepared as
+**1.5.0** and not yet tagged.
 
 The set no longer tracks a single draft revision, because its three families do not. Each
 vector states the revision it was built against in its own `section_ref`:
@@ -214,7 +217,7 @@ vector states the revision it was built against in its own `section_ref`:
 |---|---|---|
 | native, `vectors/` | 15 | draft-kroehl-agentic-trust-aae-00 |
 | composition, `interop/*/vectors/` | 6 | draft-kroehl-agentic-trust-aae-00 + draft-yossif-psea-02 |
-| enforce, `vectors/enforce/` | 26 | draft-kroehl-agentic-trust-aae-02, enforce kernel 3.0 |
+| enforce, `vectors/enforce/` | 29 | draft-kroehl-agentic-trust-aae-02, enforce kernel 3.0 |
 
 The `-00` references in the first two are provenance, not staleness: -01 carried three
 editorial precisions and changed no field, no verification step and no normative
@@ -227,7 +230,10 @@ enforce family: a third schema, 26 vectors against draft -02, and a reference ve
 them. v1.4.0 recomputes all 26 enforce digests against enforce kernel 3.0, which no longer
 digests `reason`. Same 26 vectors, same inputs, same verdicts and statuses — only the
 expected core digests move, and `kernel_version` goes 2.0 → 3.0 with them. The v1.3.0 tag
-stays as the pre-3.0 state.
+stays as the pre-3.0 state. 1.5.0 (prepared, untagged) adds vectors 27–29 for grant
+attenuation across a delegation hop, with a new optional `ancestors` input. The 26 existing
+files are byte-identical after a rebuild: without `ancestors` the core does not change, so
+neither do their digests.
 
 *(This section read "1.1.0" until v1.3.0 while the v1.2.0 tag already existed. The line was
 not bumped when the composition suite landed; it is correct from here on. The title carried

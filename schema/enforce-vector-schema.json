@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/MoltyCel/aae-conformance-vectors/schema/enforce-vector-schema.json",
   "title": "AAE Enforce Conformance Vector",
-  "description": "Schema for a single vector against the enforce kernel (draft-kroehl-agentic-trust-aae-02: grants with type_fields, the closed constraint language, the verdict vocabulary and ratification). This schema EXTENDS the vector set; it does not replace schema/vector-schema.json, which continues to govern the 15 AAE-native vectors in vectors/ unchanged, nor schema/interop-composition-vector-schema.json. The three families cannot share one schema: a native vector is a JWS evaluated by the Section 5 nine-step algorithm and answers ACCEPT/REJECT at a numbered step, while an enforce vector is a mandate plus a transaction, carries no JWS and no step number, and answers PERMIT/DENY/PENDING with a recomputable core digest. Merging them would mean dropping 'secured_aae' from required and widening the result enum, which would let a native vector claim PERMIT and validate.",
+  "description": "Schema for a single vector against the enforce kernel (draft-kroehl-agentic-trust-aae-02: grants with type_fields, the closed constraint language, the verdict vocabulary, ratification, and grant attenuation across delegation hops). This schema EXTENDS the vector set; it does not replace schema/vector-schema.json, which continues to govern the 15 AAE-native vectors in vectors/ unchanged, nor schema/interop-composition-vector-schema.json. The three families cannot share one schema: a native vector is a JWS evaluated by the Section 5 nine-step algorithm and answers ACCEPT/REJECT at a numbered step, while an enforce vector is a mandate plus a transaction, carries no JWS and no step number, and answers PERMIT/DENY/PENDING with a recomputable core digest. Merging them would mean dropping 'secured_aae' from required and widening the result enum, which would let a native vector claim PERMIT and validate.",
   "type": "object",
   "required": ["id", "name", "description", "section_ref", "kernel", "kernel_version", "input", "expected", "rationale"],
   "additionalProperties": false,
@@ -54,6 +54,9 @@
         "prev_core_digest": {
           "description": "The chain link. Null or absent starts a chain. For a ratification it must equal the core digest of the record being ratified.",
           "type": ["string", "null"]
+        },
+        "ancestors": {
+          "description": "enforce_check, optional: the parent mandates of a delegated mandate, root first, ending with its direct parent. Each hop is checked for grant attenuation (Section 5 step 9) and recorded as a grant_attenuation predicate whose value and bound are the child and parent mandate digests. Absent or empty adds nothing to the trace, so the core of an undelegated mandate is unchanged. Untyped beyond 'any JSON value' for the same reason as mandate: a malformed value is a fail-closed case."
         }
       }
     },
@@ -145,7 +148,8 @@
             "required": ["prior_record", "decision", "authority_proof"],
             "not": { "anyOf": [
               { "required": ["mandate"] },
-              { "required": ["transaction"] }
+              { "required": ["transaction"] },
+              { "required": ["ancestors"] }
             ] }
           },
           "expected": {

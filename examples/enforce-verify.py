@@ -4,7 +4,8 @@
 Implements the enforce kernel of draft-kroehl-agentic-trust-aae-02 from the draft text:
 Section 2.2.1 (grants), 2.2.2 (action binding and the type form), 2.2.3 (grant
 evaluation), 2.5 (the closed constraint language and the predicate trace), 6.1 (the
-verdict vocabulary) and 6.3/6.4 (ratification and its guards).
+verdict vocabulary), 6.3/6.4 (ratification and its guards), and the grant attenuation of
+Section 5 step 9 over an optional `ancestors` input.
 
 What it checks per vector: the verdict, the core digest recomputed from the input alone,
 every predicate the vector names, and the substring the reason must contain. The digest is
@@ -232,13 +233,116 @@ def type_shape_problem(action, type_fields):
     return None
 
 
+# --------------------------------------------- Section 5 step 9, grant attenuation
+#
+# Read as written. Every grant in the child is covered by a grant in the parent with an
+# equal action_binding, a disposition no more permissive (allow <= hold <= forbid), and
+# constraints the child's constraints imply. Implication is defined per type: exact
+# equal, enum a subset, range nested. A parent constraint with no implying child
+# constraint of the same type on the same field removes a bound. An unrecognized type
+# passes only where parent and child carry it identically.
+
+DISPOSITION_ORDER = {"allow": 0, "hold": 1, "forbid": 2}
+MAX_ANCESTORS = 8
+
+
+def constraint_implied(cc, pc) -> bool:
+    """Does child constraint `cc` imply parent constraint `pc`? Same type, same field."""
+    if not isinstance(cc, dict) or not isinstance(pc, dict):
+        return False
+    if cc.get("type") != pc.get("type") or cc.get("field") != pc.get("field"):
+        return False
+    kind = pc.get("type")
+    if kind == "exact":
+        return isinstance(pc.get("value"), str) and cc.get("value") == pc.get("value")
+    if kind == "enum":
+        cv, pv = cc.get("values"), pc.get("values")
+        return (isinstance(cv, list) and isinstance(pv, list) and bool(cv)
+                and all(isinstance(v, str) and v in pv for v in cv))
+    if kind == "range":
+        clo, chi, plo, phi = cc.get("lo"), cc.get("hi"), pc.get("lo"), pc.get("hi")
+        if not all(is_int(x) for x in (clo, chi, plo, phi)):
+            return False
+        return plo <= clo and chi <= phi
+    return cc == pc
+
+
+def implies(child_grant, parent_grant) -> str | None:
+    """None if the child's constraints imply every parent constraint, else the lost bound."""
+    for pc in parent_grant["constraints"]:
+        if not any(constraint_implied(cc, pc) for cc in child_grant["constraints"]):
+            ptype = pc.get("type") if isinstance(pc, dict) else None
+            pfield = pc.get("field") if isinstance(pc, dict) else None
+            return f"parent constraint {ptype} on {pfield!r} is absent or not narrowed"
+    return None
+
+
+def attenuation_problem(child, parent) -> str | None:
+    """Section 5 step 9: every child grant is covered by a parent grant."""
+    for label, m in (("child", child), ("parent", parent)):
+        p = mandate_problem(m)
+        if p is not None:
+            return f"{label} {p}"
+    parent_grants = parent["grants"]
+    for i, g in enumerate(child["grants"]):
+        peers = [(j, q) for j, q in enumerate(parent_grants)
+                 if q["action_binding"] == g["action_binding"]]
+        if not peers:
+            return f"grant[{i}] binds an action no parent grant binds"
+        lost_disposition = lost_constraint = None
+        for j, q in peers:
+            if DISPOSITION_ORDER[g["disposition"]] < DISPOSITION_ORDER[q["disposition"]]:
+                lost_disposition = lost_disposition or (
+                    f"grant[{i}] disposition {g['disposition']} is broader than parent "
+                    f"grant[{j}] {q['disposition']}")
+                continue
+            why = implies(g, q)
+            if why is None:
+                break
+            lost_constraint = lost_constraint or f"grant[{i}] vs parent grant[{j}]: {why}"
+        else:
+            return lost_constraint or lost_disposition
+    return None
+
+
+def chain_predicates(mandate, ancestors, trace) -> str | None:
+    """One grant_attenuation entry per hop, root first; the DENY reason, or None."""
+    if not isinstance(ancestors, list) or len(ancestors) > MAX_ANCESTORS:
+        why = f"ancestors must be an array of at most {MAX_ANCESTORS} mandates"
+        trace.append(pred("grant_attenuation", None, FAIL, why))
+        return why
+    links = ancestors + [mandate]
+    for k in range(len(ancestors)):
+        parent, child = links[k], links[k + 1]
+        problem = attenuation_problem(child, parent)
+        child_d, parent_d = digest(TAG_MANDATE, child), digest(TAG_MANDATE, parent)
+        if problem is not None:
+            why = f"grant attenuation, hop {k}: {problem}"
+            trace.append(pred("grant_attenuation", f"ancestors[{k}]", FAIL, why,
+                              child_d, parent_d))
+            return why
+        trace.append(pred("grant_attenuation", f"ancestors[{k}]", PASS,
+                          f"hop {k}: every child grant stays inside the parent",
+                          child_d, parent_d))
+    return None
+
+
 # --------------------------------------------------------------- Section 2.2.3 / 6.1
 
-def enforce_check(mandate, transaction, prev_core_digest=None) -> dict:
+def enforce_check(mandate, transaction, prev_core_digest=None, ancestors=None) -> dict:
     trace, grant_index = [], None
     problem = mandate_problem(mandate)
     tx_ok = isinstance(transaction, dict)
     act_digest = digest(TAG_ACTION, transaction.get("action")) if tx_ok else None
+
+    # Once mandate, transaction and action are usable, the chain is checked first: a hop
+    # that widens a grant decides the verdict before any grant of the presented mandate is
+    # looked at. No ancestors, no chain entries, and the core is what it was before.
+    chain_problem = None
+    if problem is None and tx_ok and act_digest is not None:
+        trace.append(pred("mandate_present", None, PASS, "mandate structurally valid"))
+        if ancestors is not None and ancestors != []:
+            chain_problem = chain_predicates(mandate, ancestors, trace)
 
     if problem is not None:
         verdict, reason = DENY, problem
@@ -249,8 +353,9 @@ def enforce_check(mandate, transaction, prev_core_digest=None) -> dict:
     elif act_digest is None:
         verdict, reason = DENY, "transaction.action missing or not canonicalizable"
         trace.append(pred("action_binding", "action", FAIL, reason))
+    elif chain_problem is not None:
+        verdict, reason = DENY, chain_problem
     else:
-        trace.append(pred("mandate_present", None, PASS, "mandate structurally valid"))
         grants = mandate["grants"]
         action = transaction.get("action")
 
@@ -485,12 +590,13 @@ def check_vector(vector) -> list:
 
     if vector["kernel"] == "enforce_check":
         got = enforce_check(inp.get("mandate"), inp.get("transaction"),
-                            inp.get("prev_core_digest"))
+                            inp.get("prev_core_digest"), inp.get("ancestors"))
         # Determinism, on every vector rather than in one of its own: the same inputs with
         # their keys in the other order must land on the same 32 octets.
         again = enforce_check(reordered(inp.get("mandate")),
                               reordered(inp.get("transaction")),
-                              inp.get("prev_core_digest"))
+                              inp.get("prev_core_digest"),
+                              reordered(inp.get("ancestors")))
         if again["core_digest"] != got["core_digest"]:
             fails.append("core_digest depends on key order — canonicalization is not RFC 8785")
         if got["verdict"] != exp["verdict"]:

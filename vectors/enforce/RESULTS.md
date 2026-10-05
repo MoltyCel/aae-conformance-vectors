@@ -1,6 +1,33 @@
 # Results — enforce vector set
 
-Recorded run of the 26 enforce vectors and the cross-check that gives them their standing.
+Recorded run of the enforce vectors and the cross-check that gives them their standing.
+
+## 1.5.0 — prepared, not tagged
+
+Run date: 2026-10-05. Three vectors added for the grant attenuation of Section 5 step 9:
+
+| # | Vector | Outcome | Deployed kernel |
+|---|---|---|---|
+| 27 | Grant widened at hop | DENY | reproduced |
+| 28 | Grant narrowed at hop | PERMIT | reproduced |
+| 29 | Purpose enum grant widened | DENY | reproduced |
+
+    tools/validate_enforce_schema.py   29/29 enforce vectors valid
+    examples/enforce-verify.py         29/29 enforce vectors passed
+    cross-check vs deployed kernel     29/29 reproduced (module and wire, both key orders)
+
+The deployed kernel is moltrust-api `f1e327b` (PR #598). A rebuild rewrites 01–26 byte for
+byte: they carry no `ancestors`, so their cores, digests and `kernel_version` are what 1.4.0
+recorded. The kernel at `15fbc5f`, before #598, returns PERMIT on 27 and 29 and a different
+core on 28. That is the defect the three vectors exist to catch.
+
+The bar of "separately written" from the section below holds for 01–26. It does not hold for
+27–29: the reference verifier's attenuation and the kernel's were written by the same author
+on the same day, from the same draft text. Agreement on these three shows the two do the
+same thing. Whether that is what the draft says has to be checked by an implementation
+written elsewhere.
+
+The section below records the 1.4.0 run and stays as it was.
 
 Run date: 2026-09-05. Vector set version: 1.4.0. Tracks
 `draft-kroehl-agentic-trust-aae-02`, enforce kernel 3.0.
