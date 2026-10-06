@@ -36,7 +36,7 @@ VECTORS_DIR = os.path.join(ROOT, "vectors")
 DIDDOCS_DIR = os.path.join(ROOT, "testkeys", "did-documents")
 
 RECOGNIZED_CONSTRAINTS = {"max_transaction_value", "allowed_domains", "rate_limit"}
-NUMERIC_UPPER_BOUND = {"max_transaction_value"}
+NUMERIC_UPPER_BOUND = {"max_transaction_value", "rate_limit"}
 CURRENCY_VALUED = {"max_transaction_value"}
 ALLOWLIST_CONSTRAINTS = {"allowed_domains"}
 
@@ -314,15 +314,28 @@ def check_link(child_vc: dict, parent_vc: dict, step: int = 9,
     # constraint monotonicity
     pc = parent.get("constraints", {})
     cc = child.get("constraints", {})
+    # A required parent constraint "MUST also be present in the delegated AAE
+    # and MUST either be marked required: true or omit the required member"
+    # (-00 §3; -02 §5 step 9: "MUST NOT be relaxed to required: false").
     for ctype, p in pc.items():
-        if p.get("required", True) and ctype not in cc:
+        if p.get("required", True) and (ctype not in cc or not cc[ctype].get("required", True)):
             raise Reject(step, "required_parent_constraint_dropped")
     for ctype, c in cc.items():
         p = pc.get(ctype)
         if p is None:
             continue
+        # "where a constraint type is unrecognized and parent and child differ
+        # in it, the relying party MUST reject the chain rather than assume the
+        # difference is narrowing" (-02 §5 step 9; -00 §3: narrowing that
+        # cannot be determined MUST be rejected).
+        if ctype not in RECOGNIZED_CONSTRAINTS and c != p:
+            raise Reject(step, "delegated_unrecognized_constraint_differs")
         if ctype in CURRENCY_VALUED and c.get("currency") != p.get("currency"):
             raise Reject(step, "delegation_currency_mismatch")
+        # "the delegated rate_limit MUST use the same window value as the
+        # parent constraint" (-00 §3); its value is checked as an upper bound.
+        if ctype == "rate_limit" and c.get("window") != p.get("window"):
+            raise Reject(step, "delegation_rate_limit_window_mismatch")
         if ctype in NUMERIC_UPPER_BOUND and c.get("value", 0) > p.get("value", 0):
             raise Reject(step, "delegated_constraint_relaxed")
         if ctype in ALLOWLIST_CONSTRAINTS and not set(c.get("value", [])).issubset(set(p.get("value", []))):

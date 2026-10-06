@@ -62,7 +62,8 @@ def _root_aae(constraints: dict) -> str:
 
 
 def _chain(delegation_policy=_UNSET, delegator_aae_id: str = ROOT_ID,
-           root_constraints: dict | None = None) -> tuple[str, list[str]]:
+           root_constraints: dict | None = None,
+           child_constraints: dict | None = None) -> tuple[str, list[str]]:
     """registry -> agent-a (root, depth 0) -> agent-b (depth 1).
 
     Returns (presented child JWS, delegation_chain). With the defaults this is
@@ -85,7 +86,7 @@ def _chain(delegation_policy=_UNSET, delegator_aae_id: str = ROOT_ID,
                 "depth": 1, "max_depth": 2,
             },
         },
-        "constraints": {"max_transaction_value": bv.max_tx(300, "USD")},
+        "constraints": child_constraints or {"max_transaction_value": bv.max_tx(300, "USD")},
         "validity": {"not_before": bv.NB, "not_after": bv.NA, "single_use": False},
     })
     return bv.sign_jws(child, bv.AGENT_A_KEY), [root_jws]
@@ -229,3 +230,56 @@ def test_ancestor_string_constraint_value_rejected_at_step9(root_constraints, re
     child_jws, chain = _chain(root_constraints=root_constraints)
     got = verifier.verify(child_jws, _context(delegation_chain=chain))
     assert got == _reject(9, reason, f"node 0 constraint {ctype!r} is not an object")
+
+
+# --- #17: three §3 narrowing rules in check_link -----------------------------
+
+@pytest.mark.parametrize("filename, reason", [
+    # -02 §5 step 9: an unrecognized constraint type that differs between
+    # parent and child MUST be rejected rather than assumed to narrow.
+    ("16-delegation-unrecognized-differs.json", "delegated_unrecognized_constraint_differs"),
+    # -00 §3: a delegated rate_limit value MUST be <= the parent value.
+    ("17-delegation-rate-limit-relaxation.json", "delegated_constraint_relaxed"),
+    # -00 §3: a required parent constraint MUST NOT be changed to required: false.
+    ("18-delegation-required-downgraded.json", "required_parent_constraint_dropped"),
+], ids=["unrecognized-differs", "rate-limit-relaxed", "required-downgraded"])
+def test_issue17_vector_rejected_at_step9(filename, reason):
+    import json
+
+    with open(os.path.join(ROOT, "vectors", filename)) as fh:
+        vector = json.load(fh)
+    got = verifier.verify(vector["input"]["secured_aae"], vector["input"]["context"])
+    assert got == _reject(9, reason)
+    assert vector["expected"] == {"result": "REJECT", "verification_step": 9, "rejection_reason": reason}
+
+
+RATE_PT1H = {"value": 10, "window": "PT1H", "required": False}
+
+
+def test_rate_limit_window_mismatch_rejected():
+    """-00 §3: "the delegated rate_limit MUST use the same window value as the
+    parent constraint [...] if the windows differ and no such profile applies,
+    the delegated AAE MUST be rejected", even when the child value is lower."""
+    child_jws, chain = _chain(
+        root_constraints={"rate_limit": RATE_PT1H},
+        child_constraints={"rate_limit": {"value": 5, "window": "PT24H", "required": False}})
+    got = verifier.verify(child_jws, _context(delegation_chain=chain))
+    assert got == _reject(9, "delegation_rate_limit_window_mismatch")
+
+
+@pytest.mark.parametrize("root_constraints, child_constraints", [
+    # unrecognized type, identical in parent and child
+    ({"resource": {"value": "repo:acme/*", "required": False}},
+     {"resource": {"value": "repo:acme/*", "required": False}}),
+    # rate_limit narrowed: same window, lower value
+    ({"rate_limit": RATE_PT1H},
+     {"rate_limit": {"value": 5, "window": "PT1H", "required": False}}),
+    # required parent constraint kept with the required member omitted
+    ({"max_transaction_value": bv.max_tx(500, "USD")},
+     {"max_transaction_value": {"value": 300, "currency": "USD"}}),
+], ids=["unrecognized-equal", "rate-limit-narrowed", "required-member-omitted"])
+def test_issue17_controls_accept(root_constraints, child_constraints):
+    """The #17 checks reject only the relaxations: these narrowings pass."""
+    child_jws, chain = _chain(root_constraints=root_constraints, child_constraints=child_constraints)
+    got = verifier.verify(child_jws, _context(delegation_chain=chain))
+    assert got == {"result": "ACCEPT", "verification_step": 9, "rejection_reason": None}
