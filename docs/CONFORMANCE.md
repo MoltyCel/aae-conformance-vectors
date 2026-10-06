@@ -44,13 +44,16 @@ rejection occurs, or the last step reached for an acceptance.
 | 13-unrecognized-required-constraint | REJECT | 7 | §2.3, §5.7 | An unrecognized constraint marked `required:true` is rejected. |
 | 14-cty-header-wrong | REJECT | 2 | §2.1, §5.2 | A protected header with `cty` other than `aae+json` is rejected. |
 | 15-currency-mismatch-delegation | REJECT | 9 | §3, §5.9 | A delegated currency-valued constraint in a different currency than the parent is rejected. |
+| 16-delegation-unrecognized-differs | REJECT | 9 | §3; -02 §5.9 | A parent and child that differ in an unrecognized constraint type are rejected, even with `required:false`. |
+| 17-delegation-rate-limit-relaxation | REJECT | 9 | §3, §5.9 | A delegated `rate_limit` value above the parent's, in the same window, is rejected. |
+| 18-delegation-required-downgraded | REJECT | 9 | §3, §5.9 | A required parent constraint kept in the child but marked `required:false` is rejected. |
 
 ## Reference implementation
 
 `examples/python-verify.py` implements the Section 5 algorithm, including real
-EdDSA signature verification against the DID-document fixtures. It passes all 15
-vectors (`15/15`). This is the reference-implementation pass for vector set
-v1.0.0.
+EdDSA signature verification against the DID-document fixtures. It passes all 18
+vectors (`18/18`). Its `15/15` on vectors 01-15 was the reference-implementation
+pass for vector set v1.0.0.
 
 The reference verifier supplies out-of-band facts (the step-4 challenge-response
 outcome, revocation responses, the consumed-id set) from each vector's `context`
@@ -75,7 +78,7 @@ that implementations can map their own diagnostics onto it.
 | 6 | `action_not_in_mandate` |
 | 7 | `unrecognized_required_constraint`, `constraint_unevaluable`, `currency_mismatch`, `max_transaction_value_exceeded`, `domain_not_in_allowlist`, `rate_limit_exceeded` |
 | 8 | `revocation_status_indeterminate`, `revoked` |
-| 9 | `delegation_cycle_detected`, `delegation_depth_exceeded`, `delegator_aae_hash_mismatch`, `delegator_aae_id_mismatch`, `delegator_did_mismatch`, `delegation_policy_missing`, `delegated_actions_not_subset`, `delegation_depth_inconsistent`, `delegation_max_depth_exceeds_parent`, `required_parent_constraint_dropped`, `delegation_currency_mismatch`, `delegated_constraint_relaxed`, `delegated_allowlist_not_subset`, `delegated_validity_widened`, `ancestor_revoked` |
+| 9 | `delegation_cycle_detected`, `delegation_depth_exceeded`, `delegator_aae_hash_mismatch`, `delegator_aae_id_mismatch`, `delegator_did_mismatch`, `delegation_policy_missing`, `delegated_actions_not_subset`, `delegation_depth_inconsistent`, `delegation_max_depth_exceeds_parent`, `required_parent_constraint_dropped`, `delegation_currency_mismatch`, `delegation_rate_limit_window_mismatch`, `delegated_unrecognized_constraint_differs`, `delegated_constraint_relaxed`, `delegated_allowlist_not_subset`, `delegated_validity_widened`, `ancestor_revoked` |
 
 At step 9 the verifier also reports the step-1, step-2, step-3 and step-8 codes
 when an ancestor fails those checks, and `unrecognized_required_constraint` /
@@ -88,6 +91,12 @@ New codes, not used by any vector:
   `delegation_policy` object carrying a non-negative integer `max_depth` (-00 §3).
 - `delegator_aae_id_mismatch` — the child's `delegation.delegator_aae_id` does not
   equal the `id` of the supplied parent (-00 §3; -02 §5 step 9).
+- `delegation_rate_limit_window_mismatch` — a delegated `rate_limit` whose `window`
+  differs from the parent's (-00 §3).
+
+New in #17, used by vector 16: `delegated_unrecognized_constraint_differs` — a
+constraint type the verifier does not recognize is present in parent and child with
+different contents (-02 §5 step 9; -00 §3). The name is provisional.
 
 A rejection may carry an optional `detail` string next to `rejection_reason`, for
 example `node 0 (root) has no delegation_policy`. Nodes are indexed from the root

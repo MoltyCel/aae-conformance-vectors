@@ -17,7 +17,7 @@ Each vector specifies an input AAE (a signed JWS in compact serialization) and
 the expected verifier result, with a reference to the section of the draft that
 governs the case.
 
-Coverage of the 15 vectors:
+Coverage of the 18 vectors:
 
 | # | Vector | Result | Step | Mode | Draft section |
 |---|--------|--------|------|------|---------------|
@@ -36,6 +36,9 @@ Coverage of the 15 vectors:
 | 13 | Unrecognized required constraint | REJECT | 7 | structural | §2.3, §5 step 7 |
 | 14 | Wrong cty protected header | REJECT | 2 | structural | §2.1, §5 step 2 |
 | 15 | Currency mismatch in delegation | REJECT | 9 | structural | §3, §5 step 9 |
+| 16 | Delegation changes an unrecognized constraint | REJECT | 9 | structural | §3, -02 §5 step 9 |
+| 17 | Delegation relaxes a rate_limit | REJECT | 9 | structural | §3, §5 step 9 |
+| 18 | Delegation downgrades a required constraint | REJECT | 9 | structural | §3, §5 step 9 |
 
 See [docs/CONFORMANCE.md](docs/CONFORMANCE.md) for the full vector-to-section
 mapping and the rationale per case.
@@ -47,7 +50,7 @@ mapping and the rationale per case.
 3. For each vector, compare your verifier's output against the `expected` field:
    `result` (ACCEPT or REJECT) and, for rejections, the `verification_step` at
    which the algorithm stops.
-4. To claim conformance against draft-kroehl-agentic-trust-aae-00, all 15
+4. To claim conformance against draft-kroehl-agentic-trust-aae-00, all 18
    vectors must match.
 
 A reference verifier is provided in
@@ -60,7 +63,7 @@ vectors pass.
 $ python3 examples/python-verify.py
 PASS  01-valid-root-aae.json                     ACCEPT @ step 7
 ...
-15/15 vectors passed
+18/18 vectors passed
 ```
 
 Requirements: Python 3.9+ and the `cryptography` package
@@ -79,7 +82,7 @@ rather than one widened one:
 
 | Schema | Governs | Input | Answers |
 |---|---|---|---|
-| [`vector-schema.json`](schema/vector-schema.json) | the 15 native vectors in `vectors/` | one JWS plus context | ACCEPT / REJECT at a numbered §5 step |
+| [`vector-schema.json`](schema/vector-schema.json) | the 18 native vectors in `vectors/` | one JWS plus context | ACCEPT / REJECT at a numbered §5 step |
 | [`enforce-vector-schema.json`](schema/enforce-vector-schema.json) | `vectors/enforce/` | a mandate plus a transaction, or a record plus an authority proof | PERMIT / DENY / PENDING, or RATIFIED / REJECTED, with a recomputable core digest |
 | [`interop-composition-vector-schema.json`](schema/interop-composition-vector-schema.json) | `interop/*/vectors/` | one AAE plus one artifact from another profile | eight staged rows |
 
@@ -212,7 +215,7 @@ vector states the revision it was built against in its own `section_ref`:
 
 | Family | Count | Tracks |
 |---|---|---|
-| native, `vectors/` | 15 | draft-kroehl-agentic-trust-aae-00 |
+| native, `vectors/` | 18 | draft-kroehl-agentic-trust-aae-00 |
 | composition, `interop/*/vectors/` | 6 | draft-kroehl-agentic-trust-aae-00 + draft-yossif-psea-02 |
 | enforce, `vectors/enforce/` | 26 | draft-kroehl-agentic-trust-aae-02, enforce kernel 3.0 |
 
@@ -232,7 +235,12 @@ values, a delegation from a root AAE without `delegation_policy`, and a `delegat
 that does not name the supplied parent, with two new step-9 codes
 (`delegation_policy_missing`, `delegator_aae_id_mismatch`); `docs/CONFORMANCE.md` gains a
 table of every rejection reason code the verifier emits. No vector and no expected result
-changed.
+changed. Also unreleased (#17): three native vectors, 16-18, for -00 §3 rules the reference
+verifier did not enforce at step 9. A parent and child that differ in an unrecognized
+constraint type, a delegated `rate_limit` with a higher value or a different `window`, and a
+required parent constraint changed to `required: false` are now rejected, with two new codes
+(`delegated_unrecognized_constraint_differs`, `delegation_rate_limit_window_mismatch`).
+Vectors 01-15 and their expected results are unchanged.
 
 *(This section read "1.1.0" until v1.3.0 while the v1.2.0 tag already existed. The line was
 not bumped when the composition suite landed; it is correct from here on. The title carried

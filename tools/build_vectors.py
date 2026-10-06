@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the 15 AAE conformance vectors.
+"""Build the 18 AAE conformance vectors.
 
 Loads the committed test keys (tools/genkeys.py), constructs an AAE Verifiable
 Credential for each vector, signs it as a JWS in compact serialization, and
@@ -592,6 +592,120 @@ def vectors():
         "rationale": "Section 3 requires a currency-valued delegated constraint to use the same currency as the parent unless an explicitly configured conversion policy exists; if the currencies differ and no such policy exists, the delegated AAE MUST be rejected. The child uses EUR against a USD parent, so it is rejected at step 9.",
     })
 
+    # 16 — unrecognized constraint type that differs between parent and child (REJECT)
+    d_unrec = vc("urn:uuid:00000010-0000-4000-8000-000000000010", AGENT_A, AGENT_B, {
+        "mandate": {
+            "actions": ["read"],
+            "delegation": {
+                "delegator_did": AGENT_A, "delegator_aae_id": "urn:uuid:00000010-0000-4000-8000-0000000000a0",
+                "delegator_aae_uri": "https://aae.example/p/00000010-a0",
+                "depth": 1, "max_depth": 2,
+            },
+        },
+        "constraints": {
+            "max_transaction_value": max_tx(300, "USD"),
+            "resource": {"value": "repo:acme/colmena", "required": False},  # parent: repo:acme/*
+        },
+        "validity": {"not_before": NB, "not_after": NA, "single_use": False},
+    })
+    parent16 = vc("urn:uuid:00000010-0000-4000-8000-0000000000a0", REGISTRY, AGENT_A, {
+        "mandate": root_mandate(["read", "book"], delegation_policy={"max_depth": 2}),
+        "constraints": {
+            "max_transaction_value": max_tx(500, "USD"),
+            "resource": {"value": "repo:acme/*", "required": False},
+        },
+        "validity": {"not_before": NB, "not_after": NA, "single_use": False},
+    })
+    out.append({
+        "id": "aae-vector-16",
+        "name": "Delegation changes an unrecognized constraint — reject",
+        "description": "Parent and delegated AAE both carry the unrecognized constraint type 'resource' (required:false) with different values: repo:acme/* in the parent, repo:acme/colmena in the child.",
+        "section_ref": "draft-kroehl-agentic-trust-aae-00 §3, draft-kroehl-agentic-trust-aae-02 §5 step 9",
+        "input": {"secured_aae": sign_jws(d_unrec, AGENT_A_KEY), "context": {
+            "current_time": NOON,
+            "requested_action": "read",
+            "action_context": {"amount": 50, "currency": "USD"},
+            "subject_binding": {"challenge_response_valid": True},
+            "delegation_chain": [sign_jws(parent16, REGISTRY_KEY)],
+        }},
+        "expected": {"result": "REJECT", "verification_step": 9, "rejection_reason": "delegated_unrecognized_constraint_differs"},
+        "rationale": "Section 3 requires the delegated AAE to be rejected when the relying party cannot determine whether a delegated element is equal to or more restrictive than the parent element, and -02 §5 step 9 states that where a constraint type is unrecognized and parent and child differ in it, the relying party MUST reject the chain rather than assume the difference is narrowing. 'resource' is unrecognized and required:false, so step 7 ignores it on the presented AAE, but the child value differs from the parent value, so the chain is rejected at step 9.",
+    })
+
+    # 17 — delegation relaxes rate_limit (REJECT): same window, higher value
+    d_rate = vc("urn:uuid:00000011-0000-4000-8000-000000000011", AGENT_A, AGENT_B, {
+        "mandate": {
+            "actions": ["read"],
+            "delegation": {
+                "delegator_did": AGENT_A, "delegator_aae_id": "urn:uuid:00000011-0000-4000-8000-0000000000a1",
+                "delegator_aae_uri": "https://aae.example/p/00000011-a1",
+                "depth": 1, "max_depth": 2,
+            },
+        },
+        "constraints": {
+            "max_transaction_value": max_tx(300, "USD"),
+            "rate_limit": {"value": 20, "window": "PT1H", "required": False},  # > parent 10
+        },
+        "validity": {"not_before": NB, "not_after": NA, "single_use": False},
+    })
+    parent17 = vc("urn:uuid:00000011-0000-4000-8000-0000000000a1", REGISTRY, AGENT_A, {
+        "mandate": root_mandate(["read", "book"], delegation_policy={"max_depth": 2}),
+        "constraints": {
+            "max_transaction_value": max_tx(500, "USD"),
+            "rate_limit": {"value": 10, "window": "PT1H", "required": False},
+        },
+        "validity": {"not_before": NB, "not_after": NA, "single_use": False},
+    })
+    out.append({
+        "id": "aae-vector-17",
+        "name": "Delegation relaxes a rate_limit — reject",
+        "description": "Delegated rate_limit allows 20 actions per PT1H while the parent allows 10 per PT1H.",
+        "section_ref": "draft-kroehl-agentic-trust-aae-00 §3 (rate-limit constraints), §5 step 9",
+        "input": {"secured_aae": sign_jws(d_rate, AGENT_A_KEY), "context": {
+            "current_time": NOON,
+            "requested_action": "read",
+            "action_context": {"amount": 50, "currency": "USD"},
+            "subject_binding": {"challenge_response_valid": True},
+            "delegation_chain": [sign_jws(parent17, REGISTRY_KEY)],
+        }},
+        "expected": {"result": "REJECT", "verification_step": 9, "rejection_reason": "delegated_constraint_relaxed"},
+        "rationale": "Section 3 requires that, in the absence of a profile defining comparison semantics, a delegated rate_limit use the same window value as the parent and a value less than or equal to the parent value. The windows match (PT1H) but the child value 20 exceeds the parent's 10, so the delegated AAE is not strictly subordinate and is rejected at step 9.",
+    })
+
+    # 18 — delegation downgrades a required parent constraint to required:false (REJECT)
+    d_req = vc("urn:uuid:00000012-0000-4000-8000-000000000012", AGENT_A, AGENT_B, {
+        "mandate": {
+            "actions": ["read"],
+            "delegation": {
+                "delegator_did": AGENT_A, "delegator_aae_id": "urn:uuid:00000012-0000-4000-8000-0000000000a2",
+                "delegator_aae_uri": "https://aae.example/p/00000012-a2",
+                "depth": 1, "max_depth": 2,
+            },
+        },
+        "constraints": {"max_transaction_value": max_tx(300, "USD", required=False)},  # parent: required:true
+        "validity": {"not_before": NB, "not_after": NA, "single_use": False},
+    })
+    parent18 = vc("urn:uuid:00000012-0000-4000-8000-0000000000a2", REGISTRY, AGENT_A, {
+        "mandate": root_mandate(["read", "book"], delegation_policy={"max_depth": 2}),
+        "constraints": {"max_transaction_value": max_tx(500, "USD")},
+        "validity": {"not_before": NB, "not_after": NA, "single_use": False},
+    })
+    out.append({
+        "id": "aae-vector-18",
+        "name": "Delegation downgrades a required constraint to required:false — reject",
+        "description": "Parent max_transaction_value is required:true; the delegated AAE keeps the constraint but marks it required:false.",
+        "section_ref": "draft-kroehl-agentic-trust-aae-00 §3 (required parent constraints), §5 step 9",
+        "input": {"secured_aae": sign_jws(d_req, AGENT_A_KEY), "context": {
+            "current_time": NOON,
+            "requested_action": "read",
+            "action_context": {"amount": 50, "currency": "USD"},
+            "subject_binding": {"challenge_response_valid": True},
+            "delegation_chain": [sign_jws(parent18, REGISTRY_KEY)],
+        }},
+        "expected": {"result": "REJECT", "verification_step": 9, "rejection_reason": "required_parent_constraint_dropped"},
+        "rationale": "Section 3 requires every parent constraint marked required:true to be present in the delegated AAE and either marked required:true or omit the required member, and states that a delegated AAE MUST NOT omit, downgrade, or change to required:false any such constraint. The child carries max_transaction_value with required:false, so it is rejected at step 9 even though the constraint is not absent.",
+    })
+
     return out
 
 
@@ -613,6 +727,9 @@ def main() -> None:
         "aae-vector-13": "13-unrecognized-required-constraint.json",
         "aae-vector-14": "14-cty-header-wrong.json",
         "aae-vector-15": "15-currency-mismatch-delegation.json",
+        "aae-vector-16": "16-delegation-unrecognized-differs.json",
+        "aae-vector-17": "17-delegation-rate-limit-relaxation.json",
+        "aae-vector-18": "18-delegation-required-downgraded.json",
     }
     # verification_mode (#2, enum runtime|structural). Rule: runtime = the
     # determining check consults live external state (clock for §2.4 validity,
@@ -635,6 +752,9 @@ def main() -> None:
         "aae-vector-13": "structural",  # step 7 unrecognized required constraint — document shape
         "aae-vector-14": "structural",  # step 2 cty header — document field
         "aae-vector-15": "structural",  # step 9 currency mismatch — document compare
+        "aae-vector-16": "structural",  # step 9 unrecognized constraint differs — document compare
+        "aae-vector-17": "structural",  # step 9 rate_limit relaxed — document compare
+        "aae-vector-18": "structural",  # step 9 required constraint downgraded — document compare
     }
     for v in vectors():
         v["verification_mode"] = mode[v["id"]]
