@@ -6,7 +6,7 @@ Credential for each vector, signs it as a JWS in compact serialization, and
 writes vectors/NN-*.json. Deterministic given the committed keys: re-running
 reproduces byte-identical signatures.
 
-Spec: draft-kroehl-agentic-trust-aae-00 (content == internal -04).
+Spec: draft-kroehl-agentic-trust-aae-00.
 
 THESE KEYS ARE PUBLIC AND FOR TESTING ONLY. DO NOT USE IN PRODUCTION.
 """
