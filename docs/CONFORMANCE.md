@@ -3,8 +3,8 @@
 This document maps each vector to the draft section it exercises and records the
 conformance status of known AAE implementations.
 
-Spec: [draft-kroehl-agentic-trust-aae-00](https://datatracker.ietf.org/doc/draft-kroehl-agentic-trust-aae/)
-(content identical to the internal `-04` working revision).
+Spec: [draft-kroehl-agentic-trust-aae-00](https://datatracker.ietf.org/doc/draft-kroehl-agentic-trust-aae/00/).
+The 15 vectors mapped below are built against this published revision.
 
 ## Verification algorithm (Section 5)
 
