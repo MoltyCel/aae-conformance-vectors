@@ -3,7 +3,7 @@
 Maps each composition vector to the sections it exercises on both sides, and
 records what a conforming composition layer has to reproduce.
 
-- AAE: [draft-kroehl-agentic-trust-aae-00](https://datatracker.ietf.org/doc/draft-kroehl-agentic-trust-aae/)
+- AAE: [draft-kroehl-agentic-trust-aae-00](https://datatracker.ietf.org/doc/draft-kroehl-agentic-trust-aae/00/)
 - PSEA: draft-yossif-psea-02, [yuthent/psea-spec](https://github.com/yuthent/psea-spec)
 - Composition framing: draft-mih-sato-agent-accountability-composition-00
 - Enrollment gap: draft-yossif-enrollment-problem-00
