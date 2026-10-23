@@ -1,10 +1,17 @@
 # AAE Conformance Vectors v1.4.0
 
-Test vectors for the Agent Authorization Envelope (AAE) Internet-Draft. The 15
-native vectors below, the delegation and revocation cases among them, are built
-against [draft-kroehl-agentic-trust-aae-00](https://datatracker.ietf.org/doc/draft-kroehl-agentic-trust-aae/00/);
-the enforce family is built against -02. Each vector names its revision in
-`section_ref` (see [Versioning](#versioning)).
+Test vectors for the Agent Authorization Envelope (AAE) Internet-Draft. Each
+vector set is built against one published revision:
+
+- native, `vectors/` (15, the delegation and revocation cases among them):
+  [draft-kroehl-agentic-trust-aae-00](https://datatracker.ietf.org/doc/draft-kroehl-agentic-trust-aae/00/)
+- composition, `interop/*/vectors/` (6):
+  [draft-kroehl-agentic-trust-aae-00](https://datatracker.ietf.org/doc/draft-kroehl-agentic-trust-aae/00/)
+  with draft-yossif-psea-02
+- enforce, `vectors/enforce/` (26):
+  [draft-kroehl-agentic-trust-aae-02](https://datatracker.ietf.org/doc/draft-kroehl-agentic-trust-aae/02/)
+
+Each vector names its revision in `section_ref` (see [Versioning](#versioning)).
 
 An AAE is a W3C Verifiable Credential, secured as an EdDSA JWS, that states what
 an autonomous agent is authorized to do (MANDATE), the limits on those actions

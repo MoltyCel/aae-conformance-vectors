@@ -79,5 +79,5 @@ encoding for such a vector — either repo can host it.
   https://github.com/aeoess/aps-conformance-suite/tree/main/interop/aae-envelope
 - aeoess writeup (`ALIGNMENT-moltycel.md`):
   https://github.com/aeoess/aps-conformance-suite/blob/main/interop/aae-envelope/ALIGNMENT-moltycel.md
-- AAE draft (IETF Datatracker):
-  https://datatracker.ietf.org/doc/draft-kroehl-agentic-trust-aae/
+- AAE draft (IETF Datatracker), draft-kroehl-agentic-trust-aae-00:
+  https://datatracker.ietf.org/doc/draft-kroehl-agentic-trust-aae/00/
