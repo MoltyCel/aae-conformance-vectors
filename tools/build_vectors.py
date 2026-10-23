@@ -620,7 +620,7 @@ def vectors():
         "id": "aae-vector-16",
         "name": "Delegation changes an unrecognized constraint — reject",
         "description": "Parent and delegated AAE both carry the unrecognized constraint type 'resource' (required:false) with different values: repo:acme/* in the parent, repo:acme/colmena in the child.",
-        "section_ref": "draft-kroehl-agentic-trust-aae-00 §3, draft-kroehl-agentic-trust-aae-02 §5 step 9",
+        "section_ref": "draft-kroehl-agentic-trust-aae-00 §3 (equal to or more restrictive), §5 step 9",
         "input": {"secured_aae": sign_jws(d_unrec, AGENT_A_KEY), "context": {
             "current_time": NOON,
             "requested_action": "read",
@@ -629,7 +629,7 @@ def vectors():
             "delegation_chain": [sign_jws(parent16, REGISTRY_KEY)],
         }},
         "expected": {"result": "REJECT", "verification_step": 9, "rejection_reason": "delegated_unrecognized_constraint_differs"},
-        "rationale": "Section 3 requires the delegated AAE to be rejected when the relying party cannot determine whether a delegated element is equal to or more restrictive than the parent element, and -02 §5 step 9 states that where a constraint type is unrecognized and parent and child differ in it, the relying party MUST reject the chain rather than assume the difference is narrowing. 'resource' is unrecognized and required:false, so step 7 ignores it on the presented AAE, but the child value differs from the parent value, so the chain is rejected at step 9.",
+        "rationale": "Section 3 states that if a relying party cannot determine whether a delegated element is equal to or more restrictive than the corresponding parent element, the delegated AAE MUST be rejected, and step 9 requires constraint monotonicity to hold as defined in Section 3 for each delegation link. 'resource' is an unrecognized constraint type marked required:false, so step 7 ignores it on the presented AAE, but Section 3 defines no comparison for it and the child value differs from the parent value, so the relying party cannot determine that the child is equal to or more restrictive and the chain is rejected at step 9.",
     })
 
     # 17 — delegation relaxes rate_limit (REJECT): same window, higher value
