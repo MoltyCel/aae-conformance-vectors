@@ -1,0 +1,30 @@
+{
+  "id": "aae-vector-17",
+  "name": "Delegation relaxes a rate_limit \u2014 reject",
+  "description": "Delegated rate_limit allows 20 actions per PT1H while the parent allows 10 per PT1H.",
+  "section_ref": "draft-kroehl-agentic-trust-aae-00 \u00a73 (rate-limit constraints), \u00a75 step 9",
+  "input": {
+    "secured_aae": "eyJhbGciOiJFZERTQSIsImN0eSI6ImFhZStqc29uIiwia2lkIjoiZGlkOndlYjpleGFtcGxlLmNvbTphZ2VudC1hI2tleS0xIn0.eyJAY29udGV4dCI6WyJodHRwczovL3d3dy53My5vcmcvbnMvY3JlZGVudGlhbHMvdjIiLCJodHRwczovL21vbHRydXN0LmNoL2NvbnRleHRzL2FhZS92MSJdLCJ0eXBlIjpbIlZlcmlmaWFibGVDcmVkZW50aWFsIiwiQWdlbnRBdXRob3JpemF0aW9uRW52ZWxvcGUiXSwiaWQiOiJ1cm46dXVpZDowMDAwMDAxMS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMTEiLCJpc3N1ZXIiOiJkaWQ6d2ViOmV4YW1wbGUuY29tOmFnZW50LWEiLCJ2YWxpZEZyb20iOiIyMDI2LTA1LTIwVDA4OjAwOjAwWiIsImNyZWRlbnRpYWxTdWJqZWN0Ijp7ImlkIjoiZGlkOndlYjpleGFtcGxlLmNvbTphZ2VudC1iIiwiYWFlIjp7Im1hbmRhdGUiOnsiYWN0aW9ucyI6WyJyZWFkIl0sImRlbGVnYXRpb24iOnsiZGVsZWdhdG9yX2RpZCI6ImRpZDp3ZWI6ZXhhbXBsZS5jb206YWdlbnQtYSIsImRlbGVnYXRvcl9hYWVfaWQiOiJ1cm46dXVpZDowMDAwMDAxMS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwYTEiLCJkZWxlZ2F0b3JfYWFlX3VyaSI6Imh0dHBzOi8vYWFlLmV4YW1wbGUvcC8wMDAwMDAxMS1hMSIsImRlcHRoIjoxLCJtYXhfZGVwdGgiOjJ9fSwiY29uc3RyYWludHMiOnsibWF4X3RyYW5zYWN0aW9uX3ZhbHVlIjp7InZhbHVlIjozMDAsImN1cnJlbmN5IjoiVVNEIiwicmVxdWlyZWQiOnRydWV9LCJyYXRlX2xpbWl0Ijp7InZhbHVlIjoyMCwid2luZG93IjoiUFQxSCIsInJlcXVpcmVkIjpmYWxzZX19LCJ2YWxpZGl0eSI6eyJub3RfYmVmb3JlIjoiMjAyNi0wNS0yMFQwODowMDowMFoiLCJub3RfYWZ0ZXIiOiIyMDI2LTA1LTIwVDE2OjAwOjAwWiIsInNpbmdsZV91c2UiOmZhbHNlfX19fQ.Sp1PUS8vy_UV-m8Xb1QD_rF1Hu75K8GWDoUIGmxluRX2TvgU4jlJXVklxpVj6Qq79mDcB4bWjNzzBsuuTxhrCw",
+    "context": {
+      "current_time": "2026-05-20T12:00:00Z",
+      "requested_action": "read",
+      "action_context": {
+        "amount": 50,
+        "currency": "USD"
+      },
+      "subject_binding": {
+        "challenge_response_valid": true
+      },
+      "delegation_chain": [
+        "eyJhbGciOiJFZERTQSIsImN0eSI6ImFhZStqc29uIiwia2lkIjoiZGlkOndlYjpleGFtcGxlLmNvbTpyZWdpc3RyeSNrZXktMSJ9.eyJAY29udGV4dCI6WyJodHRwczovL3d3dy53My5vcmcvbnMvY3JlZGVudGlhbHMvdjIiLCJodHRwczovL21vbHRydXN0LmNoL2NvbnRleHRzL2FhZS92MSJdLCJ0eXBlIjpbIlZlcmlmaWFibGVDcmVkZW50aWFsIiwiQWdlbnRBdXRob3JpemF0aW9uRW52ZWxvcGUiXSwiaWQiOiJ1cm46dXVpZDowMDAwMDAxMS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwYTEiLCJpc3N1ZXIiOiJkaWQ6d2ViOmV4YW1wbGUuY29tOnJlZ2lzdHJ5IiwidmFsaWRGcm9tIjoiMjAyNi0wNS0yMFQwODowMDowMFoiLCJjcmVkZW50aWFsU3ViamVjdCI6eyJpZCI6ImRpZDp3ZWI6ZXhhbXBsZS5jb206YWdlbnQtYSIsImFhZSI6eyJtYW5kYXRlIjp7ImFjdGlvbnMiOlsicmVhZCIsImJvb2siXSwicHVycG9zZSI6IkJ1c2luZXNzIHRyYXZlbCBib29raW5nIiwic2NvcGUiOiJ0cmF2ZWwtdmVydGljYWwiLCJwcmluY2lwYWxfZGlkIjoiZGlkOndlYjpleGFtcGxlLmNvbTplbnRlcnByaXNlLWNvcnAiLCJkZWxlZ2F0aW9uX3BvbGljeSI6eyJtYXhfZGVwdGgiOjJ9fSwiY29uc3RyYWludHMiOnsibWF4X3RyYW5zYWN0aW9uX3ZhbHVlIjp7InZhbHVlIjo1MDAsImN1cnJlbmN5IjoiVVNEIiwicmVxdWlyZWQiOnRydWV9LCJyYXRlX2xpbWl0Ijp7InZhbHVlIjoxMCwid2luZG93IjoiUFQxSCIsInJlcXVpcmVkIjpmYWxzZX19LCJ2YWxpZGl0eSI6eyJub3RfYmVmb3JlIjoiMjAyNi0wNS0yMFQwODowMDowMFoiLCJub3RfYWZ0ZXIiOiIyMDI2LTA1LTIwVDE2OjAwOjAwWiIsInNpbmdsZV91c2UiOmZhbHNlfX19fQ.JYCJLDa3r-oPET3CE7eVfSCJxNcHIYT5EMUaq0jTx0wmGyR5s7xaWFp5CLYkw5SJdEGXRUt_ajzmrlczHo_iDA"
+      ]
+    }
+  },
+  "expected": {
+    "result": "REJECT",
+    "verification_step": 9,
+    "rejection_reason": "delegated_constraint_relaxed"
+  },
+  "rationale": "Section 3 requires that, in the absence of a profile defining comparison semantics, a delegated rate_limit use the same window value as the parent and a value less than or equal to the parent value. The windows match (PT1H) but the child value 20 exceeds the parent's 10, so the delegated AAE is not strictly subordinate and is rejected at step 9.",
+  "verification_mode": "structural"
+}

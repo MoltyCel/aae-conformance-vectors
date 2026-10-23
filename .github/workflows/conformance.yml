@@ -20,7 +20,7 @@ jobs:
         run: pip install cryptography jsonschema jcs pytest==9.1.1
       - name: Validate vectors against schema
         run: python3 tools/validate_schema.py
-      - name: Run reference verifier (must be 15/15)
+      - name: Run reference verifier (must be 18/18)
         run: python3 examples/python-verify.py
       - name: Run reference verifier unit tests
         run: python3 -m pytest tests/
