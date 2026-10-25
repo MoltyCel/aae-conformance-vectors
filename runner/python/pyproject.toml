@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aae-conformance"
+version = "1.0.0"
+description = "Runner for the AAE conformance vectors (protocol aae-conformance-runner/1)"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.9"
+dependencies = []
+
+[project.scripts]
+aae-conformance = "aae_conformance.runner:main"
+
+[tool.setuptools]
+packages = ["aae_conformance"]

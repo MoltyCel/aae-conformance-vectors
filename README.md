@@ -76,6 +76,26 @@ PASS  01-valid-root-aae.json                     ACCEPT @ step 7
 Requirements: Python 3.9+ and the `cryptography` package
 (`pip install cryptography`). Schema validation additionally uses `jsonschema`.
 
+## Testing your implementation
+
+Two runners, one in Python (standard library only) and one in TypeScript (Node 20+), run
+your own implementation against the native and enforce vectors. You write a small adapter
+that reads one JSON request on stdin and answers on stdout; the runner sends every vector
+through it, prints PASS or FAIL with the mismatch, and exits 0 only if all pass.
+
+    PYTHONPATH=runner/python python3 -m aae_conformance --impl "python3 my_adapter.py"
+
+    cd runner/ts && npm ci && npm run build && cd ../..
+    node runner/ts/dist/cli.js --impl "python3 my_adapter.py"
+
+The guide, [docs/TESTING-YOUR-IMPLEMENTATION.md](docs/TESTING-YOUR-IMPLEMENTATION.md),
+covers writing the adapter (skeletons in Python and JavaScript under
+[`adapters/`](adapters/)), reading the result, recomputing an enforce verdict and its core
+digest from the input, and which conformance claim a result supports. The wire format is
+[docs/RUNNER-PROTOCOL.md](docs/RUNNER-PROTOCOL.md). CI runs both runners against
+[`adapters/python-reference/`](adapters/python-reference/), the reference verifiers behind
+the protocol, and requires 41/41 from each.
+
 ## Vector format
 
 Each vector has eight fields: `id`, `name`, `description`, `section_ref`,
@@ -218,6 +238,10 @@ rebuilds and re-signs every vector from the keys.
 
 Vector set version: **1.4.0**.
 
+Runner version: **1.0.0**, protocol `aae-conformance-runner/1`. The runners and their
+protocol are versioned on their own: a runner release changes no vector, and a vector
+release does not by itself change the protocol.
+
 The set no longer tracks a single draft revision, because its three families do not. Each
 vector states the revision it was built against in its own `section_ref`:
 
@@ -244,6 +268,9 @@ that does not name the supplied parent, with two new step-9 codes
 (`delegation_policy_missing`, `delegator_aae_id_mismatch`); `docs/CONFORMANCE.md` gains a
 table of every rejection reason code the verifier emits. No vector and no expected result
 changed.
+Also unreleased: the conformance runners 1.0.0 (Python and TypeScript), the reference
+adapter, adapter skeletons, `tools/explain_enforce.py`, and the guide
+`docs/TESTING-YOUR-IMPLEMENTATION.md`.
 
 *(This section read "1.1.0" until v1.3.0 while the v1.2.0 tag already existed. The line was
 not bumped when the composition suite landed; it is correct from here on. The title carried

@@ -70,6 +70,14 @@ For specs other than AAE (APS, x402, action_ref, etc.):
    ```
    python3 -m pytest tests/
    ```
+   For a change to the runners (`runner/`) or the adapters (`adapters/`), run both
+   runners against the reference adapter and their tests (CI runs them too):
+   ```
+   PYTHONPATH=runner/python python3 -m aae_conformance --impl "python3 adapters/python-reference/adapter.py"
+   python3 -m pytest runner/python/tests/
+   (cd runner/ts && npm ci && npm run build && npm test)
+   node runner/ts/dist/cli.js --impl "python3 adapters/python-reference/adapter.py"
+   ```
 3. Open PR against `main`
 4. CI must pass (schema-validate + verifier 15/15 + byte-identical rebuild check)
 5. Reviewer: @MoltyCel

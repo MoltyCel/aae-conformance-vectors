@@ -1,0 +1,22 @@
+{
+  "name": "aae-conformance-runner",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TypeScript runner for the AAE conformance vectors (protocol aae-conformance-runner/1)",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "aae-conformance": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test test/runner.test.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.9",
+    "typescript": "5.6.3"
+  }
+}
