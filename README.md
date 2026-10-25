@@ -190,8 +190,9 @@ Current suites:
   question neither profile answers alone: did the same human both mandate the
   action and approve it. Two join axes — the action digest (**confirmed**, 32
   octets recomputed identically on both sides) and the principal resolution
-  (**proposed**, awaiting confirmation from the PSEA side). All six vectors
-  carry `"status": "proposed"` and the set is not a conformance claim. Governed
+  (**confirmed** by the PSEA side at head `8bed788`; the mapping is supplied,
+  not derived). All six vectors carry `"status": "confirmed"`, and the set is
+  not a conformance claim. Governed
   by [`schema/interop-composition-vector-schema.json`](schema/interop-composition-vector-schema.json),
   which extends rather than replaces the native vector schema.
 
