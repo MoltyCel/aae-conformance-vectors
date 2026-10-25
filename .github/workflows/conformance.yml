@@ -62,3 +62,30 @@ jobs:
             git --no-pager diff -- interop/
             exit 1
           fi
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "20"
+      - name: Build the TypeScript runner
+        working-directory: runner/ts
+        run: |
+          npm ci
+          npm run build
+      - name: Python runner against the reference adapter (must be 41/41)
+        run: |
+          PYTHONPATH=runner/python python3 -m aae_conformance \
+            --impl "python3 adapters/python-reference/adapter.py" | tee python-runner.out
+          grep -qx '41/41 passed' python-runner.out
+      - name: TypeScript runner against the reference adapter (must be 41/41)
+        run: |
+          node runner/ts/dist/cli.js \
+            --impl "python3 adapters/python-reference/adapter.py" | tee ts-runner.out
+          grep -qx '41/41 passed' ts-runner.out
+      - name: Runner tests, Python (failure modes and parity with the TypeScript runner)
+        env:
+          AAE_REQUIRE_TS_RUNNER: "1"
+        run: python3 -m pytest runner/python/tests/
+      - name: Runner tests, TypeScript
+        working-directory: runner/ts
+        run: npm test
+      - name: Recompute every enforce verdict and core digest step by step
+        run: python3 tools/explain_enforce.py vectors/enforce/*.json > /dev/null
