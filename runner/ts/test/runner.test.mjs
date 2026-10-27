@@ -28,27 +28,37 @@ function run(impl, ...args) {
 
 const summary = (out) => out.trim().split("\n").at(-1);
 
-test("reference adapter passes all 41", () => {
+test("reference adapter passes all 83", () => {
   const report = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "aae-")), "report.json");
   const { code, out } = run(REFERENCE, "--json", report);
   assert.equal(code, 0, out);
-  assert.equal(summary(out), "41/41 passed");
+  assert.equal(summary(out), "83/83 passed");
   assert.match(out, /^native {3}15\/15 passed$/m);
   assert.match(out, /^enforce {2}26\/26 passed$/m);
+  assert.match(out, /^resume {3}42\/42 passed$/m);
   const data = JSON.parse(fs.readFileSync(report, "utf8"));
   assert.equal(data.ok, true);
   assert.equal(data.runner, "typescript");
   assert.deepEqual(data.families, {
     native: { passed: 15, total: 15 }, enforce: { passed: 26, total: 26 },
+    resume: { passed: 42, total: 42 },
   });
 });
 
 test("wrong answers fail every vector with exit 1", () => {
   const { code, out } = run(faulty("wrong-result"));
   assert.equal(code, 1);
-  assert.equal(summary(out), "0/41 passed");
+  assert.equal(summary(out), "0/83 passed");
   assert.ok(out.includes('result "REJECT", expected "ACCEPT"'));
   assert.ok(out.includes('verdict "DENY", expected "PERMIT"'));
+});
+
+test("resume vectors fail as native and as enforce requests", () => {
+  const { code, out } = run(faulty("wrong-result"), "--family", "resume");
+  assert.equal(code, 1);
+  assert.equal(summary(out), "0/42 passed");
+  assert.ok(out.includes('verdict "PERMIT", expected "DENY"'));
+  assert.ok(out.includes('result "ACCEPT", expected "REJECT"'));
 });
 
 test("a wrong digest fails every record", () => {
@@ -129,7 +139,7 @@ test("unterminated quote is a usage error", () => {
 test("the JS skeleton fails cleanly", () => {
   const { code, out } = run(`${process.execPath} ${SKELETON_JS}`);
   assert.equal(code, 1);
-  assert.equal(summary(out), "0/41 passed");
+  assert.equal(summary(out), "0/83 passed");
   assert.ok(out.includes("implementation returned an error: not implemented"));
   assert.ok(!out.includes("exited with status"));
 });

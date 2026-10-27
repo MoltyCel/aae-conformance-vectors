@@ -16,7 +16,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const RUNNER_NAME = "typescript";
-const RUNNER_VERSION = "1.0.0";
+const RUNNER_VERSION = "1.1.0";
 const PROTOCOL = "aae-conformance-runner/1";
 const DEFAULT_TIMEOUT = 10;
 const NAME_WIDTH = 58;
@@ -31,7 +31,8 @@ const EXIT_USAGE = 2;
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 type JsonObject = { [key: string]: Json };
-type Family = "native" | "enforce";
+type Family = "native" | "enforce" | "resume";
+type WireFamily = "native" | "enforce";
 
 interface Vector {
   id: string;
@@ -163,14 +164,14 @@ function shellSplit(s: string): string[] {
 
 interface Args {
   impl: string;
-  family: "native" | "enforce" | "all";
+  family: "native" | "enforce" | "resume" | "all";
   json: string | null;
   timeout: number;
   vector: string[];
   vectorsRoot: string | null;
 }
 
-const USAGE = `usage: node runner/ts/dist/cli.js --impl CMD [--family {native,enforce,all}]
+const USAGE = `usage: node runner/ts/dist/cli.js --impl CMD [--family {native,enforce,resume,all}]
                      [--json REPORT] [--timeout SECONDS] [--vector PATTERN]
                      [--vectors-root DIR] [--version]
 
@@ -179,7 +180,7 @@ Run an AAE implementation against the conformance vectors (protocol ${PROTOCOL})
 options:
   --impl CMD            command that starts the implementation under test, split like a
                         POSIX shell (no shell expansion), e.g. "python3 my_adapter.py"
-  --family {native,enforce,all}
+  --family {native,enforce,resume,all}
   --json REPORT         also write a JSON report to this path
   --timeout SECONDS     per-invocation timeout (default ${DEFAULT_TIMEOUT})
   --vector PATTERN      only run vectors whose id equals PATTERN or whose file name
@@ -220,9 +221,9 @@ function parseArgs(argv: string[]): Args | number {
     switch (flag) {
       case "--impl": args.impl = value; implSeen = true; break;
       case "--family":
-        if (value !== "native" && value !== "enforce" && value !== "all") {
+        if (value !== "native" && value !== "enforce" && value !== "resume" && value !== "all") {
           throw new UsageError(`argument --family: invalid choice: '${value}' ` +
-            `(choose from 'native', 'enforce', 'all')`);
+            `(choose from 'native', 'enforce', 'resume', 'all')`);
         }
         args.family = value;
         break;
@@ -303,7 +304,21 @@ function loadVectors(root: string, family: Args["family"]): [Family, string, Vec
       out.push(["enforce", p, loadJson(p) as unknown as Vector]);
     }
   }
+  if (family === "resume" || family === "all") {
+    for (const p of jsonFiles(path.join(root, "vectors", "resume"))) {
+      out.push(["resume", p, loadJson(p) as unknown as Vector]);
+    }
+  }
   return out;
+}
+
+// The family a vector is sent as. Resume vectors reuse the two existing request shapes:
+// one with a `kernel` is an enforce request, any other a native request.
+function wireFamily(family: Family, vector: Vector): WireFamily {
+  if (family === "resume") {
+    return has(vector as unknown as JsonObject, "kernel") ? "enforce" : "native";
+  }
+  return family;
 }
 
 function selected(p: string, vector: Vector, patterns: string[]): boolean {
@@ -583,7 +598,7 @@ function checkRatify(resp: JsonObject, exp: JsonObject): string[] {
 }
 
 function outcomeText(family: Family, vector: Vector, resp: JsonObject): string {
-  if (family === "native") {
+  if (wireFamily(family, vector) === "native") {
     const text = `${resp.result} @ step ${resp.verification_step}`;
     const reason = resp.rejection_reason;
     return text + (typeof reason === "string" && reason ? ` (${reason})` : "");
@@ -607,7 +622,8 @@ async function runVector(argv: string[], root: string, family: Family, p: string
     expected: exp,
     response: null,
   };
-  const request = family === "native"
+  const wire = wireFamily(family, vector);
+  const request = wire === "native"
     ? nativeRequest(root, p, vector, didDocs)
     : enforceRequest(root, p, vector, "as-committed");
   const [resp, err] = await invoke(argv, request, timeout);
@@ -618,7 +634,7 @@ async function runVector(argv: string[], root: string, family: Family, p: string
   }
 
   let fails: string[];
-  if (family === "native") {
+  if (wire === "native") {
     fails = checkNative(resp, exp);
   } else if (vector.kernel === "enforce_check") {
     fails = checkEnforceCheck(resp, exp);
@@ -695,7 +711,7 @@ async function main(argv: string[]): Promise<number> {
   }
 
   const families: Record<string, { passed: number; total: number }> = {};
-  for (const fam of ["native", "enforce"]) {
+  for (const fam of ["native", "enforce", "resume"]) {
     const rows = results.filter((r) => r.family === fam);
     if (rows.length) {
       families[fam] = { passed: rows.filter((r) => r.status === "PASS").length, total: rows.length };

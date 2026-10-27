@@ -11,8 +11,13 @@ sends every vector through it and tells you which ones pass.
   language, verdicts, ratification) with a recomputable core digest, built against
   [draft-kroehl-agentic-trust-aae-02](https://datatracker.ietf.org/doc/draft-kroehl-agentic-trust-aae/02/),
   enforce kernel 3.0.
+- 42 resume vectors, `vectors/resume/*.json`: the 14 resume schedules of arXiv:2610.31916v1
+  under three provider profiles, each the presentation draft -02 decides for that cell
+  (see [the scenario matrix](../scenarios/permission-to-retry/README.md)). 39 are native
+  requests, the three R05 cells are `enforce_check` requests; your adapter answers them
+  exactly as it answers the other two families.
 
-You can test either family alone. The six composition vectors under `interop/` are not run
+You can test any family alone. The six composition vectors under `interop/` are not run
 by the runners.
 
 The exact wire format is in [RUNNER-PROTOCOL.md](RUNNER-PROTOCOL.md).
@@ -77,7 +82,7 @@ first run shows every vector as failed with that message. That confirms the wiri
 A complete adapter, the one CI runs, is
 [`adapters/python-reference/adapter.py`](../adapters/python-reference/adapter.py). It puts
 the two reference verifiers (`examples/python-verify.py`, `examples/enforce-verify.py`)
-behind the protocol and passes all 41.
+behind the protocol and passes all 83.
 
 ## 3. Run
 
@@ -93,7 +98,7 @@ the runner's.
 | Flag | Effect |
 |---|---|
 | `--impl CMD` | the command that starts your adapter (required) |
-| `--family native\|enforce\|all` | which family to run (default `all`) |
+| `--family native\|enforce\|resume\|all` | which family to run (default `all`) |
 | `--vector PATTERN` | only vectors whose id equals PATTERN or whose file name contains it; repeatable |
 | `--timeout SECONDS` | per-invocation timeout (default 10) |
 | `--json PATH` | also write a machine-readable report |
@@ -103,7 +108,7 @@ the runner's.
 
 The reference adapter, through the Python runner:
 
-    AAE conformance runner 1.0.0 (python), protocol aae-conformance-runner/1
+    AAE conformance runner 1.1.0 (python), protocol aae-conformance-runner/1
     implementation: python3 adapters/python-reference/adapter.py
     vectors: /home/you/aae-conformance-vectors
 
@@ -112,10 +117,13 @@ The reference adapter, through the Python runner:
     ...
     PASS  enforce  24-a-permit-is-not-ratifiable-caller-error.json            caller error
     ...
+    PASS  resume   R03-P1-initial-policy-epoch.json                           ACCEPT @ step 8
+    ...
 
     native   15/15 passed
     enforce  26/26 passed
-    41/41 passed
+    resume   42/42 passed
+    83/83 passed
 
 A failing vector lists every mismatch under it:
 
@@ -237,13 +245,14 @@ revisions of the draft:
 |---|---|
 | native 15/15 | conforms to the Section 5 verification algorithm of draft-kroehl-agentic-trust-aae-00, as tested by the native vectors |
 | enforce 26/26 | conforms to the enforce kernel of draft-kroehl-agentic-trust-aae-02 (kernel 3.0), as tested by the enforce vectors |
+| resume 42/42 | decides the admission and repeat-dispatch presentations of the 14 resume schedules as draft-kroehl-agentic-trust-aae-02 does; it says nothing about the history outcome, which -02 leaves unspecified in 30 of the 42 cells |
 
 Fewer than all vectors of a family is not a conformance claim for that family; report the
 count instead ("passes 12 of 15 native vectors"). Name what you ran, so the claim can be
 reproduced:
 
-> Passes the AAE conformance vectors v1.4.0, native family 15/15
-> (draft-kroehl-agentic-trust-aae-00), runner 1.0.0, protocol aae-conformance-runner/1.
+> Passes the AAE conformance vectors v1.6.0, native family 15/15
+> (draft-kroehl-agentic-trust-aae-00), runner 1.1.0, protocol aae-conformance-runner/1.
 
 Keep the limits in view. The native vectors fix the subject-binding outcome, the
 revocation responses and the consumed-id set through `context`, so passing them shows

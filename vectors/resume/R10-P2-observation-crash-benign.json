@@ -1,0 +1,48 @@
+{
+  "id": "aae-resume-R10-P2",
+  "name": "R10 observation crash benign, provider profile P2",
+  "description": "Resume schedule \"observation crash benign\" (arXiv:2610.31916v1 §2, §4.2, Figure 2) under provider profile P2: the repeat dispatch as the relying party sees it.",
+  "section_ref": "draft-kroehl-agentic-trust-aae-02 §2.4 (single_use), §5 step 5",
+  "input": {
+    "secured_aae": "eyJhbGciOiJFZERTQSIsImN0eSI6ImFhZStqc29uIiwia2lkIjoiZGlkOndlYjpleGFtcGxlLmNvbTpyZWdpc3RyeSNrZXktMSJ9.eyJAY29udGV4dCI6WyJodHRwczovL3d3dy53My5vcmcvbnMvY3JlZGVudGlhbHMvdjIiLCJodHRwczovL21vbHRydXN0LmNoL2NvbnRleHRzL2FhZS92MSJdLCJ0eXBlIjpbIlZlcmlmaWFibGVDcmVkZW50aWFsIiwiQWdlbnRBdXRob3JpemF0aW9uRW52ZWxvcGUiXSwiaWQiOiJ1cm46dXVpZDowMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAxMTAiLCJpc3N1ZXIiOiJkaWQ6d2ViOmV4YW1wbGUuY29tOnJlZ2lzdHJ5IiwidmFsaWRGcm9tIjoiMjAyNi0wNS0yMFQwODowMDowMFoiLCJjcmVkZW50aWFsU3ViamVjdCI6eyJpZCI6ImRpZDp3ZWI6ZXhhbXBsZS5jb206YWdlbnQtMDAxIiwiYWFlIjp7Im1hbmRhdGUiOnsiYWN0aW9ucyI6WyJwYXkiXSwicHVycG9zZSI6IlJlZnVuZCBvZiBvbmUgb3JkZXIiLCJzY29wZSI6InBheW1lbnRzIiwicHJpbmNpcGFsX2RpZCI6ImRpZDp3ZWI6ZXhhbXBsZS5jb206ZW50ZXJwcmlzZS1jb3JwIn0sImNvbnN0cmFpbnRzIjp7Im1heF90cmFuc2FjdGlvbl92YWx1ZSI6eyJ2YWx1ZSI6MTIwLCJjdXJyZW5jeSI6IlVTRCIsInJlcXVpcmVkIjp0cnVlfX0sInZhbGlkaXR5Ijp7Im5vdF9iZWZvcmUiOiIyMDI2LTA1LTIwVDA4OjAwOjAwWiIsIm5vdF9hZnRlciI6IjIwMjYtMDUtMjBUMTY6MDA6MDBaIiwic2luZ2xlX3VzZSI6dHJ1ZSwicmV2b2NhdGlvbl9jaGVjayI6Imh0dHBzOi8vYXBpLmV4YW1wbGUuY29tL2FhZS9yZXZvY2F0aW9uL3tpZH0ifX19fQ.lFd_zaX40lLF3aZ4fgV7mTLF5Xfk_u94JF3-y5cBkXqJNc-gH8suULsZdmXXIHAVrAVJBJYRj-xZAdxB8uaJBg",
+    "context": {
+      "current_time": "2026-05-20T12:00:00Z",
+      "requested_action": "pay",
+      "action_context": {
+        "amount": 120,
+        "currency": "USD"
+      },
+      "subject_binding": {
+        "challenge_response_valid": true
+      },
+      "consumed_ids": [
+        "urn:uuid:00000000-0000-4000-8000-000000000110"
+      ],
+      "revocation_responses": {
+        "urn:uuid:00000000-0000-4000-8000-000000000110": {
+          "http_status": 200,
+          "revoked": false
+        }
+      }
+    }
+  },
+  "expected": {
+    "result": "REJECT",
+    "verification_step": 5,
+    "rejection_reason": "single_use_already_consumed"
+  },
+  "cell": {
+    "row": "R10",
+    "schedule": "observation crash benign",
+    "profile": "P2",
+    "presentation": "repeat dispatch",
+    "history_outcome": "NS",
+    "gaps": [
+      "L1",
+      "L5"
+    ],
+    "paper_reference_outcome": "C",
+    "source": "arXiv:2610.31916v1 §2, §4.2, Figure 2"
+  },
+  "rationale": "The confirmation is already held, so no dispatch is needed. A dispatch, if attempted, is rejected by single use at §5 step 5."
+}

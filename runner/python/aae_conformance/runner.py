@@ -120,7 +120,18 @@ def load_vectors(root: str, family: str) -> list:
     if family in ("enforce", "all"):
         for path in sorted(glob.glob(os.path.join(root, "vectors", "enforce", "*.json"))):
             out.append(("enforce", path, load_json(path)))
+    if family in ("resume", "all"):
+        for path in sorted(glob.glob(os.path.join(root, "vectors", "resume", "*.json"))):
+            out.append(("resume", path, load_json(path)))
     return out
+
+
+def wire_family(family: str, vector: dict) -> str:
+    """The family a vector is sent as. Resume vectors reuse the two existing request
+    shapes: one with a `kernel` is an enforce request, any other a native request."""
+    if family == "resume":
+        return "enforce" if "kernel" in vector else "native"
+    return family
 
 
 def selected(path: str, vector: dict, patterns: list) -> bool:
@@ -349,7 +360,7 @@ def check_ratify(resp: dict, exp: dict) -> list:
 
 
 def outcome_text(family: str, vector: dict, resp: dict) -> str:
-    if family == "native":
+    if wire_family(family, vector) == "native":
         text = f"{resp['result']} @ step {resp['verification_step']}"
         reason = resp.get("rejection_reason")
         return text + (f" ({reason})" if isinstance(reason, str) and reason else "")
@@ -373,7 +384,8 @@ def run_vector(argv, root, family, path, vector, did_docs, timeout) -> dict:
         "expected": exp,
         "response": None,
     }
-    if family == "native":
+    wire = wire_family(family, vector)
+    if wire == "native":
         resp, err = invoke(argv, native_request(root, path, vector, did_docs), timeout)
     else:
         resp, err = invoke(argv, enforce_request(root, path, vector, "as-committed"), timeout)
@@ -382,7 +394,7 @@ def run_vector(argv, root, family, path, vector, did_docs, timeout) -> dict:
         entry["failures"] = [err]
         return entry
 
-    if family == "native":
+    if wire == "native":
         fails = check_native(resp, exp)
     elif vector["kernel"] == "enforce_check":
         fails = check_enforce_check(resp, exp)
@@ -419,7 +431,7 @@ def parse_args(argv):
     ap.add_argument("--impl", required=True,
                     help="command that starts the implementation under test, split like a "
                          "POSIX shell (no shell expansion), e.g. \"python3 my_adapter.py\"")
-    ap.add_argument("--family", choices=("native", "enforce", "all"), default="all")
+    ap.add_argument("--family", choices=("native", "enforce", "resume", "all"), default="all")
     ap.add_argument("--json", metavar="REPORT", help="also write a JSON report to this path")
     ap.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT, metavar="SECONDS",
                     help=f"per-invocation timeout (default {DEFAULT_TIMEOUT:g})")
@@ -473,7 +485,7 @@ def main(argv=None) -> int:
         sys.stdout.flush()
 
     families = {}
-    for fam in ("native", "enforce"):
+    for fam in ("native", "enforce", "resume"):
         rows = [r for r in results if r["family"] == fam]
         if rows:
             families[fam] = {"passed": sum(r["status"] == "PASS" for r in rows),
