@@ -96,6 +96,14 @@ digest from the input, and which conformance claim a result supports. The wire f
 [`adapters/python-reference/`](adapters/python-reference/), the reference verifiers behind
 the protocol, and requires 41/41 from each.
 
+## Resume scenarios
+
+[`scenarios/permission-to-retry/`](scenarios/permission-to-retry/) reads the 14 resume
+schedules and three provider profiles of arXiv:2610.31916v1 against
+draft-kroehl-agentic-trust-aae-02: one expected outcome per cell, or "not specified", with
+the open questions listed in [`LUECKEN.md`](scenarios/permission-to-retry/LUECKEN.md). It is
+text only for now; no vector file and no runner result depends on it.
+
 ## Vector format
 
 Each vector has eight fields: `id`, `name`, `description`, `section_ref`,
