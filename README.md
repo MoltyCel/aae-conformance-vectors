@@ -1,4 +1,4 @@
-# AAE Conformance Vectors v1.4.0
+# AAE Conformance Vectors v1.6.0
 
 Test vectors for the Agent Authorization Envelope (AAE) Internet-Draft. Each
 vector set is built against one published revision:
@@ -9,6 +9,8 @@ vector set is built against one published revision:
   [draft-kroehl-agentic-trust-aae-00](https://datatracker.ietf.org/doc/draft-kroehl-agentic-trust-aae/00/)
   with draft-yossif-psea-02
 - enforce, `vectors/enforce/` (26):
+  [draft-kroehl-agentic-trust-aae-02](https://datatracker.ietf.org/doc/draft-kroehl-agentic-trust-aae/02/)
+- resume, `vectors/resume/` (42): the resume schedules of arXiv:2610.31916v1 read against
   [draft-kroehl-agentic-trust-aae-02](https://datatracker.ietf.org/doc/draft-kroehl-agentic-trust-aae/02/)
 
 Each vector names its revision in `section_ref` (see [Versioning](#versioning)).
@@ -79,9 +81,9 @@ Requirements: Python 3.9+ and the `cryptography` package
 ## Testing your implementation
 
 Two runners, one in Python (standard library only) and one in TypeScript (Node 20+), run
-your own implementation against the native and enforce vectors. You write a small adapter
-that reads one JSON request on stdin and answers on stdout; the runner sends every vector
-through it, prints PASS or FAIL with the mismatch, and exits 0 only if all pass.
+your own implementation against the native, enforce and resume vectors. You write a small
+adapter that reads one JSON request on stdin and answers on stdout; the runner sends every
+vector through it, prints PASS or FAIL with the mismatch, and exits 0 only if all pass.
 
     PYTHONPATH=runner/python python3 -m aae_conformance --impl "python3 my_adapter.py"
 
@@ -94,15 +96,26 @@ covers writing the adapter (skeletons in Python and JavaScript under
 digest from the input, and which conformance claim a result supports. The wire format is
 [docs/RUNNER-PROTOCOL.md](docs/RUNNER-PROTOCOL.md). CI runs both runners against
 [`adapters/python-reference/`](adapters/python-reference/), the reference verifiers behind
-the protocol, and requires 41/41 from each.
+the protocol, and requires 83/83 from each.
 
 ## Resume scenarios
 
 [`scenarios/permission-to-retry/`](scenarios/permission-to-retry/) reads the 14 resume
 schedules and three provider profiles of arXiv:2610.31916v1 against
 draft-kroehl-agentic-trust-aae-02: one expected outcome per cell, or "not specified", with
-the open questions listed in [`LUECKEN.md`](scenarios/permission-to-retry/LUECKEN.md). It is
-text only for now; no vector file and no runner result depends on it.
+the open questions listed in [`LUECKEN.md`](scenarios/permission-to-retry/LUECKEN.md).
+[`vectors/resume/`](vectors/resume/) holds one vector per cell, 42 in all, built from those
+two files by `tools/build_resume_vectors.py`: the presentation -02 decides for the cell
+(first admission or repeat dispatch) and its result. 39 are native requests, the three R05
+cells go through the enforce kernel. The history outcome under -02 (12 D, 30 not specified)
+and the gaps each cell rests on are recorded in the vector's `cell` member; the runners do
+not compare them, because -02 states no history outcome for a runner to check. To
+recompute:
+
+    PYTHONPATH=runner/python python3 -m aae_conformance \
+      --impl "python3 adapters/python-reference/adapter.py" --family resume
+
+prints `resume   42/42 passed`. CI rebuilds the directory and fails on any difference.
 
 ## Vector format
 
@@ -244,9 +257,9 @@ rebuilds and re-signs every vector from the keys.
 
 ## Versioning
 
-Vector set version: **1.4.0**.
+Vector set version: **1.6.0**.
 
-Runner version: **1.0.0**, protocol `aae-conformance-runner/1`. The runners and their
+Runner version: **1.1.0**, protocol `aae-conformance-runner/1`. The runners and their
 protocol are versioned on their own: a runner release changes no vector, and a vector
 release does not by itself change the protocol.
 
@@ -258,6 +271,7 @@ vector states the revision it was built against in its own `section_ref`:
 | native, `vectors/` | 15 | draft-kroehl-agentic-trust-aae-00 |
 | composition, `interop/*/vectors/` | 6 | draft-kroehl-agentic-trust-aae-00 + draft-yossif-psea-02 |
 | enforce, `vectors/enforce/` | 26 | draft-kroehl-agentic-trust-aae-02, enforce kernel 3.0 |
+| resume, `vectors/resume/` | 42 | draft-kroehl-agentic-trust-aae-02 (39 native requests, 3 enforce kernel 3.0) |
 
 The `-00` references in the first two are provenance, not staleness: -01 carried three
 editorial precisions and changed no field, no verification step and no normative
@@ -276,9 +290,14 @@ that does not name the supplied parent, with two new step-9 codes
 (`delegation_policy_missing`, `delegator_aae_id_mismatch`); `docs/CONFORMANCE.md` gains a
 table of every rejection reason code the verifier emits. No vector and no expected result
 changed.
-Also unreleased: the conformance runners 1.0.0 (Python and TypeScript), the reference
-adapter, adapter skeletons, `tools/explain_enforce.py`, and the guide
+Also unreleased until v1.6.0: the conformance runners 1.0.0 (Python and TypeScript), the
+reference adapter, adapter skeletons, `tools/explain_enforce.py`, and the guide
 `docs/TESTING-YOUR-IMPLEMENTATION.md`.
+v1.6.0 adds the resume family: 42 vectors under `vectors/resume/` for the scenario matrix
+in `scenarios/permission-to-retry/`, their builder, and runners 1.1.0 with
+`--family resume`. It also releases everything listed as unreleased above. No existing
+vector and no expected result changed. The number 1.5.0 is held for the grant-attenuation
+vectors still in review (#14).
 
 *(This section read "1.1.0" until v1.3.0 while the v1.2.0 tag already existed. The line was
 not bumped when the composition suite landed; it is correct from here on. The title carried

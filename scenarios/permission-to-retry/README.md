@@ -2,8 +2,22 @@
 
 This directory states, for each of the 14 resume schedules and three provider profiles of
 arXiv:2610.31916v1, which outcome draft-kroehl-agentic-trust-aae-02 lets a reader derive.
-It is text only. The vector files that encode these 42 cells for the runner are a later
-step; the cell ids below (`R01-P1` … `R14-P3`) are the ids those files will carry.
+The 42 cells are encoded as runner vectors in [`vectors/resume/`](../../vectors/resume/),
+one file per cell id (`R01-P1` … `R14-P3`), built from this table and LUECKEN.md by
+`tools/build_resume_vectors.py`. Each file is the presentation -02 decides for the cell,
+with the result the "repeat dispatch" column states; the history outcome and the gaps are
+carried in its `cell` member and not compared by the runner.
+
+    PYTHONPATH=runner/python python3 -m aae_conformance \
+      --impl "python3 adapters/python-reference/adapter.py" --family resume
+
+The 39 native-shaped vectors present the envelope of item 2 below without its grant and pin
+the amount with `max_transaction_value` instead. The reason is the reference verifier: it
+implements §5 of -00 and does not evaluate grants, and -02 §2.2.1 requires a relying party
+that does not evaluate grants to reject an envelope carrying them. The steps these vectors
+stop at read the same in -00 and -02 (steps 5 and 8 word for word; -02 step 3 adds a
+reminder of the `validFrom` rule of §2.4, which the reference verifier applies). The grant
+of item 2 is exercised by the three R05 vectors, which go through the enforce kernel.
 
 Where -02 gives no answer for a cell, the cell says **not specified** and names the gap.
 The gaps are listed in [LUECKEN.md](LUECKEN.md). Both files describe -02 as published;

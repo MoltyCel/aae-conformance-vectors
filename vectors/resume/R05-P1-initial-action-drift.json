@@ -1,0 +1,79 @@
+{
+  "id": "aae-resume-R05-P1",
+  "name": "R05 initial action drift, provider profile P1",
+  "description": "Resume schedule \"initial action drift\" (arXiv:2610.31916v1 §2, §4.2, Figure 2) under provider profile P1: the first admission as the relying party sees it.",
+  "section_ref": "draft-kroehl-agentic-trust-aae-02",
+  "kernel": "enforce_check",
+  "kernel_version": "3.0",
+  "domain_tags": {
+    "action": "aae:enforce-action:v1",
+    "mandate": "aae:enforce-mandate:v1",
+    "transaction": "aae:enforce-transaction:v1",
+    "core": "aae:enforce-core:v1"
+  },
+  "input": {
+    "mandate": {
+      "mandate_version": "1.0",
+      "grants": [
+        {
+          "action_binding": "sha256:8c2938c57c38e44ed13ce9aef8a741bfc6e636fc60857c05c483078aa26cfb76",
+          "type_fields": [
+            "verb",
+            "asset",
+            "chain"
+          ],
+          "disposition": "allow",
+          "constraints": [
+            {
+              "type": "exact",
+              "field": "to",
+              "value": "0xABCDEF0123456789ABCDEF0123456789ABCDEF01"
+            },
+            {
+              "type": "range",
+              "field": "amount",
+              "lo": 120,
+              "hi": 120
+            }
+          ]
+        }
+      ]
+    },
+    "transaction": {
+      "action": {
+        "verb": "transfer",
+        "asset": "USDC",
+        "chain": "base"
+      },
+      "to": "0xABCDEF0123456789ABCDEF0123456789ABCDEF01",
+      "amount": 150
+    }
+  },
+  "expected": {
+    "verdict": "DENY",
+    "core_digest": "sha256:243e8cef19b7223fa8efca441bb2553058065f9d31ac86db2dc41204755485d1",
+    "trace": [
+      {
+        "predicate": "exact",
+        "field": "to",
+        "result": "PASS"
+      },
+      {
+        "predicate": "range",
+        "field": "amount",
+        "result": "FAIL"
+      }
+    ]
+  },
+  "cell": {
+    "row": "R05",
+    "schedule": "initial action drift",
+    "profile": "P1",
+    "presentation": "first admission",
+    "history_outcome": "D",
+    "gaps": [],
+    "paper_reference_outcome": "D",
+    "source": "arXiv:2610.31916v1 §2, §4.2, Figure 2"
+  },
+  "rationale": "The amount presented for admission differs from the approved one. The grant pins the instance with exact on the recipient and range with lo = hi on the amount, so §2.2.3 step 7 finds no matched grant whose constraints all hold and the verdict is DENY. A grant without such constraints binds only the action type (§2.2.2) and would permit the drifted amount."
+}

@@ -48,6 +48,15 @@ jobs:
             git --no-pager diff -- vectors/enforce/
             exit 1
           fi
+      - name: Verify resume vectors are reproducible and match the scenario matrix
+        run: |
+          python3 tools/build_resume_vectors.py
+          if [ -n "$(git status --porcelain -- vectors/resume/)" ]; then
+            echo "vectors/resume/ differs from a fresh rebuild — commit the regenerated vectors"
+            git status --porcelain -- vectors/resume/
+            git --no-pager diff -- vectors/resume/
+            exit 1
+          fi
       - name: Validate composition vectors against the extension schema
         run: python3 tools/validate_interop_schema.py
       - name: Run composition checker (must be 6/6, compared row by row)
@@ -70,16 +79,16 @@ jobs:
         run: |
           npm ci
           npm run build
-      - name: Python runner against the reference adapter (must be 41/41)
+      - name: Python runner against the reference adapter (must be 83/83)
         run: |
           PYTHONPATH=runner/python python3 -m aae_conformance \
             --impl "python3 adapters/python-reference/adapter.py" | tee python-runner.out
-          grep -qx '41/41 passed' python-runner.out
-      - name: TypeScript runner against the reference adapter (must be 41/41)
+          grep -qx '83/83 passed' python-runner.out
+      - name: TypeScript runner against the reference adapter (must be 83/83)
         run: |
           node runner/ts/dist/cli.js \
             --impl "python3 adapters/python-reference/adapter.py" | tee ts-runner.out
-          grep -qx '41/41 passed' ts-runner.out
+          grep -qx '83/83 passed' ts-runner.out
       - name: Runner tests, Python (failure modes and parity with the TypeScript runner)
         env:
           AAE_REQUIRE_TS_RUNNER: "1"

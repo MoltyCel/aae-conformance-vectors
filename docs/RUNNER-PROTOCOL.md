@@ -5,9 +5,16 @@ How the conformance runners talk to an implementation under test. Both runners, 
 speak exactly this protocol, compare exactly the fields listed here, and print the same
 result lines. An adapter written against this page works with either.
 
-The protocol covers the 15 native vectors (`vectors/*.json`) and the 26 enforce vectors
-(`vectors/enforce/*.json`). The composition vectors under `interop/` are not part of it;
-they are checked row by row by `examples/composition-verify.py`.
+The protocol covers the 15 native vectors (`vectors/*.json`), the 26 enforce vectors
+(`vectors/enforce/*.json`) and the 42 resume vectors (`vectors/resume/*.json`). The
+composition vectors under `interop/` are not part of it; they are checked row by row by
+`examples/composition-verify.py`.
+
+Resume vectors add no request shape. A resume vector that carries `kernel` is sent as an
+enforce request (the three R05 cells, kernel `enforce_check`), every other one as a native
+request, and the response is compared by the rules of that shape. The runners report them
+under their own family, `resume`, selected with `--family resume`. The vector's `cell`
+member (row, provider profile, history outcome under the draft, gaps) is never sent.
 
 The guide for connecting an implementation is
 [TESTING-YOUR-IMPLEMENTATION.md](TESTING-YOUR-IMPLEMENTATION.md). This page is the
@@ -33,8 +40,9 @@ reference.
 
 One process per vector is slower than a long-lived process, and was chosen anyway: a crash,
 a hang or leftover state in one vector cannot leak into the next, there is no framing to
-get wrong, and an adapter is a plain filter from stdin to stdout. A run of all 41 vectors
-starts the implementation 62 times (15 + 26 + 21 determinism re-runs).
+get wrong, and an adapter is a plain filter from stdin to stdout. A run of all 83 vectors
+starts the implementation 107 times (15 + 26 + 42, plus 24 determinism re-runs: enforce
+vectors 01-21 and the three R05 resume vectors).
 
 ## Request
 
@@ -185,5 +193,5 @@ Mismatches read `<member> <got>, expected <want>` with both values as JSON.
 ## Versioning
 
 The protocol identifier changes only when a request or response member changes meaning or
-a compared field is added. The runners are versioned on their own (1.0.0), independent of
+a compared field is added. The runners are versioned on their own (1.1.0), independent of
 the vector set version in the README.
