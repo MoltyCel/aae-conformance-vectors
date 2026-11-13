@@ -336,15 +336,87 @@ def check_link(child_vc: dict, parent_vc: dict, step: int = 9,
         raise Reject(step, "delegated_validity_widened")
 
 
-def verify_delegation(presented_vc: dict, ctx: dict, now: datetime, step: int = 9) -> None:
-    """§5 step 9 delegation chain verification."""
-    chain = ctx.get("delegation_chain", [])
-    # verify each ancestor's signature + schema + temporal + revocation, build VC list
-    # Node indices count from the root: chain[0] is node 0 and the presented
-    # AAE is node len(chain). They are used for rejection detail text only.
+def _unverified_id(jws) -> str | None:
+    """The VC id of a supplied ancestor, read before its signature is checked.
+
+    Used only to find the parent that a delegator_aae_id names. Every envelope
+    the walk selects is verified in full before the chain is accepted, so a
+    forged id can at most select an envelope that then fails verification."""
+    if not isinstance(jws, str):
+        return None
+    parts = jws.split(".")
+    if len(parts) != 3:
+        return None
+    try:
+        payload = json.loads(b64url_decode(parts[1]))
+    except Exception:
+        return None
+    vc_id = payload.get("id") if isinstance(payload, dict) else None
+    return vc_id if isinstance(vc_id, str) else None
+
+
+def resolve_delegation_path(presented_vc: dict, chain: list, step: int = 9) -> list:
+    """Walk from the presented AAE over delegator_aae_id to the root (§5 step 9).
+
+    Returns the supplied ancestor JWS on the path, immediate parent first and
+    the root last. The root is the first AAE without mandate.delegation. A
+    delegator_aae_id that names no supplied AAE rejects with
+    delegation_ancestor_missing: a delegated AAE whose chain does not end at a
+    root has no authority to derive from. An id that appears a second time on
+    the path rejects with delegation_cycle_detected, and so does a parent id
+    that more than one supplied AAE carries: the chain is then ambiguous and
+    the verifier rejects rather than pick one (-02 §5 step 9). Supplied AAEs
+    that are not on the path are ignored, in whatever order they arrive. This
+    verifier is offline and does not retrieve ancestors over
+    delegator_aae_uri; they arrive through delegation_chain.
+    """
+    by_id: dict[str, list] = {}
+    for jws in chain:
+        vc_id = _unverified_id(jws)
+        if vc_id is not None:
+            by_id.setdefault(vc_id, []).append(jws)
+
+    path = []
+    seen = {presented_vc["id"]}
+    deleg = presented_vc["credentialSubject"]["aae"]["mandate"].get("delegation")
+    while deleg is not None:
+        parent_id = deleg.get("delegator_aae_id") if isinstance(deleg, dict) else None
+        if not isinstance(parent_id, str) or not parent_id:
+            raise Reject(step, "delegation_ancestor_missing",
+                         f"link {len(path)} above the presented AAE names no delegator_aae_id")
+        if parent_id in seen:
+            raise Reject(step, "delegation_cycle_detected",
+                         f"delegator_aae_id {parent_id!r} appears twice in the path")
+        candidates = by_id.get(parent_id, [])
+        if not candidates:
+            raise Reject(step, "delegation_ancestor_missing",
+                         f"parent AAE {parent_id!r} is not in delegation_chain")
+        if len(candidates) > 1:
+            raise Reject(step, "delegation_cycle_detected",
+                         f"parent AAE {parent_id!r} is supplied more than once")
+        jws = candidates[0]
+        seen.add(parent_id)
+        path.append(jws)
+        try:
+            parent_vc = json.loads(b64url_decode(jws.split(".")[1]))
+            deleg = parent_vc["credentialSubject"]["aae"]["mandate"].get("delegation")
+        except Exception:
+            # Not a well-formed AAE: stop here and let the per-ancestor checks
+            # below reject it with the precise step-1/step-2 reason.
+            break
+    return path
+
+
+def verify_delegation(presented_vc: dict, ctx: dict, now: datetime, step: int = 9) -> str:
+    """§5 step 9 delegation chain verification. Returns the root AAE's issuer."""
+    chain = ctx.get("delegation_chain") or []
+    path = resolve_delegation_path(presented_vc, chain, step=step)
+    # verify each ancestor on the path: signature + schema + temporal + revocation.
+    # Node indices count from the root: the root is node 0 and the presented
+    # AAE is node len(path). They are used for rejection detail text only.
     ancestors = []
-    for node in range(len(chain) - 1, -1, -1):  # immediate parent first
-        jws = chain[node]
+    for i, jws in enumerate(path):  # immediate parent first
+        node = len(path) - 1 - i
         header, vc, signing_did = verify_signature(jws, step=step)
         check_schema(header, vc, step=step)
         check_constraint_value_shapes(vc["credentialSubject"]["aae"]["constraints"], step, node)
@@ -353,7 +425,8 @@ def verify_delegation(presented_vc: dict, ctx: dict, now: datetime, step: int = 
         check_revocation(vc, ctx, step=step, revoked_reason="ancestor_revoked")
         ancestors.append((jws, vc, node))
 
-    # cycle detection: AAE id MUST NOT appear more than once in the path
+    # cycle detection over the verified documents: AAE id MUST NOT appear more
+    # than once in the path (the walk above already stops at a repeated id)
     path_ids = [presented_vc["id"]] + [vc["id"] for _, vc, _ in ancestors]
     if len(set(path_ids)) != len(path_ids):
         raise Reject(step, "delegation_cycle_detected")
@@ -364,7 +437,7 @@ def verify_delegation(presented_vc: dict, ctx: dict, now: datetime, step: int = 
         raise Reject(step, "delegation_depth_exceeded")
 
     # walk links from presented upward
-    child_vc, child_node = presented_vc, len(chain)
+    child_vc, child_node = presented_vc, len(path)
     for jws, parent_vc, parent_node in ancestors:
         # optional parent-hash binding
         child_deleg = child_vc["credentialSubject"]["aae"]["mandate"]["delegation"]
@@ -374,9 +447,17 @@ def verify_delegation(presented_vc: dict, ctx: dict, now: datetime, step: int = 
         check_link(child_vc, parent_vc, step=step, child_node=child_node, parent_node=parent_node)
         child_vc, child_node = parent_vc, parent_node
 
+    # the chain ends at a root: an AAE without mandate.delegation
+    root_vc = child_vc
+    if root_vc["credentialSubject"]["aae"]["mandate"].get("delegation") is not None:
+        raise Reject(step, "delegation_ancestor_missing")
+    return root_vc["issuer"]
+
 
 def verify(secured_aae: str, ctx: dict) -> dict:
-    """Run the Section 5 algorithm. Returns {result, verification_step, rejection_reason}."""
+    """Run the Section 5 algorithm. Returns {result, verification_step, rejection_reason};
+    an ACCEPT also carries root_issuer, the issuer of the root AAE that ends the
+    verified chain (the presented AAE's own issuer when it is not delegated)."""
     now = parse_time(ctx["current_time"])
     try:
         # Step 1 — signature + signing authority
@@ -404,10 +485,12 @@ def verify(secured_aae: str, ctx: dict) -> dict:
             check_revocation(vc, ctx, step=8)
             last_step = 8
         # Step 9 — delegation chain (conditional)
+        root_issuer = vc["issuer"]  # a root AAE is the end of its own chain
         if aae["mandate"].get("delegation") is not None:
-            verify_delegation(vc, ctx, now, step=9)
+            root_issuer = verify_delegation(vc, ctx, now, step=9)
             last_step = 9
-        return {"result": "ACCEPT", "verification_step": last_step, "rejection_reason": None}
+        return {"result": "ACCEPT", "verification_step": last_step, "rejection_reason": None,
+                "root_issuer": root_issuer}
     except Reject as r:
         out = {"result": "REJECT", "verification_step": r.step, "rejection_reason": r.reason}
         if r.detail is not None:

@@ -18,7 +18,7 @@ pip install cryptography
 python3 python-verify.py
 ```
 
-Expected output ends with `15/15 vectors passed` and a zero exit code.
+Expected output ends with `19/19 vectors passed` and a zero exit code.
 
 ## What it does and does not do
 

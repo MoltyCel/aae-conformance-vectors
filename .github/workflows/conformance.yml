@@ -20,7 +20,7 @@ jobs:
         run: pip install cryptography jsonschema jcs pytest==9.1.1
       - name: Validate vectors against schema
         run: python3 tools/validate_schema.py
-      - name: Run reference verifier (must be 15/15)
+      - name: Run reference verifier (must be 19/19)
         run: python3 examples/python-verify.py
       - name: Run reference verifier unit tests
         run: python3 -m pytest tests/
@@ -79,16 +79,16 @@ jobs:
         run: |
           npm ci
           npm run build
-      - name: Python runner against the reference adapter (must be 83/83)
+      - name: Python runner against the reference adapter (must be 87/87)
         run: |
           PYTHONPATH=runner/python python3 -m aae_conformance \
             --impl "python3 adapters/python-reference/adapter.py" | tee python-runner.out
-          grep -qx '83/83 passed' python-runner.out
-      - name: TypeScript runner against the reference adapter (must be 83/83)
+          grep -qx '87/87 passed' python-runner.out
+      - name: TypeScript runner against the reference adapter (must be 87/87)
         run: |
           node runner/ts/dist/cli.js \
             --impl "python3 adapters/python-reference/adapter.py" | tee ts-runner.out
-          grep -qx '83/83 passed' ts-runner.out
+          grep -qx '87/87 passed' ts-runner.out
       - name: Runner tests, Python (failure modes and parity with the TypeScript runner)
         env:
           AAE_REQUIRE_TS_RUNNER: "1"

@@ -4,7 +4,7 @@ This document maps each vector to the draft section it exercises and records the
 conformance status of known AAE implementations.
 
 Spec: [draft-kroehl-agentic-trust-aae-00](https://datatracker.ietf.org/doc/draft-kroehl-agentic-trust-aae/00/).
-The 15 vectors mapped below are built against this published revision.
+The 19 vectors mapped below are built against this published revision.
 
 ## Verification algorithm (Section 5)
 
@@ -44,13 +44,28 @@ rejection occurs, or the last step reached for an acceptance.
 | 13-unrecognized-required-constraint | REJECT | 7 | §2.3, §5.7 | An unrecognized constraint marked `required:true` is rejected. |
 | 14-cty-header-wrong | REJECT | 2 | §2.1, §5.2 | A protected header with `cty` other than `aae+json` is rejected. |
 | 15-currency-mismatch-delegation | REJECT | 9 | §3, §5.9 | A delegated currency-valued constraint in a different currency than the parent is rejected. |
+| 16-delegation-no-ancestors | REJECT | 9 | §3, §5.9 | A delegated AAE presented without any ancestor is rejected: the parent its `delegator_aae_id` names is missing. |
+| 17-delegation-root-omitted | REJECT | 9 | §3, §5.9 | A depth-2 delegated AAE presented with its parent but without the root is rejected: the chain does not reach a root AAE. |
+| 18-delegation-mutual-parents | REJECT | 9 | §5.9 | Two delegated AAEs that name each other as parent, with no root, are rejected as a cycle. |
+| 19-delegation-self-parent | REJECT | 9 | §5.9 | A delegated AAE whose `delegator_aae_id` is its own id is rejected as a cycle. |
 
 ## Reference implementation
 
 `examples/python-verify.py` implements the Section 5 algorithm, including real
-EdDSA signature verification against the DID-document fixtures. It passes all 15
-vectors (`15/15`). This is the reference-implementation pass for vector set
-v1.0.0.
+EdDSA signature verification against the DID-document fixtures. It passes all 19
+vectors (`19/19`). This is the reference-implementation pass for vector set
+v1.7.0.
+
+Step 9 walks the chain the way -02 §5 step 9 describes it: the supplied
+`delegation_chain` is indexed by VC id, in any order, and the verifier follows
+`delegator_aae_id` from the presented AAE until it reaches an AAE without
+`mandate.delegation`, the root. Each AAE on that path is verified (steps 1-3 and 8)
+and each link checked against Section 3. Supplied AAEs that are not on the path do
+not affect the result. The verifier is offline and does not retrieve an ancestor over
+`delegator_aae_uri`; a parent that is not supplied is missing. An ACCEPT carries the
+optional field `root_issuer`, the `issuer` of the root AAE that ends the verified chain
+(for a non-delegated AAE, its own issuer). The existing fields `result`,
+`verification_step` and `rejection_reason` are unchanged.
 
 The reference verifier supplies out-of-band facts (the step-4 challenge-response
 outcome, revocation responses, the consumed-id set) from each vector's `context`
@@ -75,19 +90,29 @@ that implementations can map their own diagnostics onto it.
 | 6 | `action_not_in_mandate` |
 | 7 | `unrecognized_required_constraint`, `constraint_unevaluable`, `currency_mismatch`, `max_transaction_value_exceeded`, `domain_not_in_allowlist`, `rate_limit_exceeded` |
 | 8 | `revocation_status_indeterminate`, `revoked` |
-| 9 | `delegation_cycle_detected`, `delegation_depth_exceeded`, `delegator_aae_hash_mismatch`, `delegator_aae_id_mismatch`, `delegator_did_mismatch`, `delegation_policy_missing`, `delegated_actions_not_subset`, `delegation_depth_inconsistent`, `delegation_max_depth_exceeds_parent`, `required_parent_constraint_dropped`, `delegation_currency_mismatch`, `delegated_constraint_relaxed`, `delegated_allowlist_not_subset`, `delegated_validity_widened`, `ancestor_revoked` |
+| 9 | `delegation_ancestor_missing`, `delegation_cycle_detected`, `delegation_depth_exceeded`, `delegator_aae_hash_mismatch`, `delegator_aae_id_mismatch`, `delegator_did_mismatch`, `delegation_policy_missing`, `delegated_actions_not_subset`, `delegation_depth_inconsistent`, `delegation_max_depth_exceeds_parent`, `required_parent_constraint_dropped`, `delegation_currency_mismatch`, `delegated_constraint_relaxed`, `delegated_allowlist_not_subset`, `delegated_validity_widened`, `ancestor_revoked` |
 
 At step 9 the verifier also reports the step-1, step-2, step-3 and step-8 codes
 when an ancestor fails those checks, and `unrecognized_required_constraint` /
 `constraint_unevaluable` when an ancestor carries a constraint value that is not
 an object.
 
-New codes, not used by any vector:
+`delegation_ancestor_missing` (vector set 1.7.0, vectors 16 and 17) — the walk from the
+presented AAE meets a `delegator_aae_id` that no supplied AAE carries, so the chain
+does not end at a root AAE (-00 §5 step 9: every ancestor MUST be verified; -02 §5
+step 9: "if no supplied ancestor carries that id, the verdict is DENY").
+`delegation_cycle_detected` (vectors 10, 18 and 19) also covers a parent id that
+more than one supplied AAE carries: -02 §5 step 9 requires rejecting such an
+ambiguous chain rather than picking one.
+
+Codes not used by any vector:
 
 - `delegation_policy_missing` — a delegation whose parent is a root AAE without a
   `delegation_policy` object carrying a non-negative integer `max_depth` (-00 §3).
 - `delegator_aae_id_mismatch` — the child's `delegation.delegator_aae_id` does not
-  equal the `id` of the supplied parent (-00 §3; -02 §5 step 9).
+  equal the `id` of the supplied parent (-00 §3; -02 §5 step 9). Since 1.7.0 the walk
+  selects the parent by that id, so a parent with another id is off the path and the
+  result is `delegation_ancestor_missing`; the check stays as a guard.
 
 A rejection may carry an optional `detail` string next to `rejection_reason`, for
 example `node 0 (root) has no delegation_policy`. Nodes are indexed from the root
@@ -122,11 +147,11 @@ the draft directly.
 | 6 action check | Gap | Action-membership against `mandate.actions` not enforced. |
 | 7 constraints | Full | `required`-default-true taxonomy, currency match, integer-minor-unit hardening, exact-domain match, windowed rate limit, unknown-required rejection. |
 | 8 revocation | Divergent (fail-closed) | Presence of `revocation_check` causes a fail-closed reject; live endpoint query deferred to an egress-proxy component. |
-| 9 delegation chain | Gap | No chain walk, monotonicity, or cycle detection in production; gated behind the delegation-enforcement work item. |
+| 9 delegation chain | Full for inline ancestors | `app/enforcement/delegation_chain.py` `verify_delegation_chain`: walks from the presented AAE over `delegator_aae_id` to the root; a parent that is not supplied inline is never accepted (rejected, or refused as not implemented where only `delegator_aae_uri` could retrieve it), an id seen twice is a cycle, the same id supplied twice is rejected. Per link: `delegator_aae_hash`, parent `credentialSubject.id` equals `delegator_did`, signing authority case (a), depth rules with a recursion limit of min(8, smallest max_depth), constraint and grant monotonicity, nested validity windows. Steps 1-2 run over every supplied ancestor (at most 16). Deferred with the egress proxy: retrieval over `delegator_aae_uri` and the step-8 revocation query for ancestors. |
 
-Summary: steps 2, 3, 5, 7 align fully; step 1 aligns for the non-delegated
-`did:moltrust` path; steps 4 and 8 diverge but fail closed; steps 6 and 9 are
-gaps. Running the public vectors directly is additionally blocked because this
+Summary: steps 2, 3, 5, 7 align fully; step 9 aligns for chains supplied inline;
+step 1 aligns for the non-delegated `did:moltrust` path; steps 4 and 8 diverge but
+fail closed; step 6 is a gap. Running the public vectors directly is additionally blocked because this
 component resolves only `did:moltrust` issuers registered in its `agents` table,
 whereas the vectors use `did:web` test issuers.
 
@@ -148,8 +173,8 @@ separate work item, out of scope for vector set v1.0.0:
 - Delegated signing-authority case (b) (step 1).
 - Action-membership enforcement (step 6).
 - Server-minted-nonce challenge-response for subject binding (step 4).
-- Delegation chain verification: monotonicity, depth limits, cycle detection
-  (step 9).
+- Delegation chain verification (step 9): done for inline ancestors, see the step-9
+  row above; ancestor retrieval over `delegator_aae_uri` waits on the egress proxy.
 - Live revocation endpoint query behind the egress proxy (step 8).
 
 When a production verifier passes the vectors, its status is recorded here and in
