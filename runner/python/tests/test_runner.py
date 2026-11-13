@@ -46,23 +46,23 @@ def summary(stdout: str) -> str:
 
 # --------------------------------------------------------------------- the passing case
 
-def test_reference_adapter_passes_all_83(tmp_path):
+def test_reference_adapter_passes_all_87(tmp_path):
     report = tmp_path / "report.json"
     code, out, _ = run(f"{PY} {shlex.quote(REFERENCE)}", "--json", str(report))
     assert code == 0, out
-    assert summary(out) == "83/83 passed"
-    assert "native   15/15 passed" in out
+    assert summary(out) == "87/87 passed"
+    assert "native   19/19 passed" in out
     assert "enforce  26/26 passed" in out
     assert "resume   42/42 passed" in out
     data = json.loads(report.read_text())
     assert data["ok"] is True
-    assert data["families"] == {"native": {"passed": 15, "total": 15},
+    assert data["families"] == {"native": {"passed": 19, "total": 19},
                                 "enforce": {"passed": 26, "total": 26},
                                 "resume": {"passed": 42, "total": 42}}
     assert all(r["status"] == "PASS" for r in data["results"])
 
 
-@pytest.mark.parametrize("family,count", [("native", 15), ("enforce", 26), ("resume", 42)])
+@pytest.mark.parametrize("family,count", [("native", 19), ("enforce", 26), ("resume", 42)])
 def test_family_filter(family, count):
     code, out, _ = run(f"{PY} {shlex.quote(REFERENCE)}", "--family", family)
     assert code == 0
@@ -75,7 +75,7 @@ def test_wrong_result_fails_every_vector(tmp_path):
     report = tmp_path / "report.json"
     code, out, _ = run(faulty("wrong-result"), "--json", str(report))
     assert code == 1
-    assert summary(out) == "0/83 passed"
+    assert summary(out) == "0/87 passed"
     assert 'result "REJECT", expected "ACCEPT"' in out
     assert 'verdict "DENY", expected "PERMIT"' in out
     data = json.loads(report.read_text())
@@ -98,7 +98,7 @@ def test_resume_vectors_go_out_as_native_and_enforce_requests():
 def test_wrong_step_fails_native():
     code, out, _ = run(faulty("wrong-step"), "--family", "native")
     assert code == 1
-    assert summary(out) == "0/15 passed"
+    assert summary(out) == "0/19 passed"
     assert "verification_step 8, expected 7" in out
 
 
@@ -199,7 +199,7 @@ def test_unterminated_quote_is_a_usage_error():
 def test_python_skeleton_fails_cleanly():
     code, out, _ = run(f"{PY} {shlex.quote(SKELETON_PY)}")
     assert code == 1
-    assert summary(out) == "0/83 passed"
+    assert summary(out) == "0/87 passed"
     assert "implementation returned an error: not implemented" in out
     assert "exited with status" not in out
 
@@ -208,7 +208,7 @@ def test_python_skeleton_fails_cleanly():
 def test_js_skeleton_fails_cleanly():
     code, out, _ = run(f"node {shlex.quote(SKELETON_JS)}")
     assert code == 1
-    assert summary(out) == "0/83 passed"
+    assert summary(out) == "0/87 passed"
     assert "implementation returned an error: not implemented" in out
     assert "exited with status" not in out
 
