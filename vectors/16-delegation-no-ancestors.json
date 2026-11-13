@@ -1,0 +1,28 @@
+{
+  "id": "aae-vector-16",
+  "name": "Delegated AAE without ancestors \u2014 reject",
+  "description": "Depth-1 delegated AAE that grants itself read, book and pay up to 1,000,000 USD, presented with an empty delegation_chain.",
+  "section_ref": "draft-kroehl-agentic-trust-aae-00 \u00a73, \u00a75 step 9 (chain to a root)",
+  "input": {
+    "secured_aae": "eyJhbGciOiJFZERTQSIsImN0eSI6ImFhZStqc29uIiwia2lkIjoiZGlkOndlYjpleGFtcGxlLmNvbTphZ2VudC1hI2tleS0xIn0.eyJAY29udGV4dCI6WyJodHRwczovL3d3dy53My5vcmcvbnMvY3JlZGVudGlhbHMvdjIiLCJodHRwczovL21vbHRydXN0LmNoL2NvbnRleHRzL2FhZS92MSJdLCJ0eXBlIjpbIlZlcmlmaWFibGVDcmVkZW50aWFsIiwiQWdlbnRBdXRob3JpemF0aW9uRW52ZWxvcGUiXSwiaWQiOiJ1cm46dXVpZDowMDAwMDAxMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMTAiLCJpc3N1ZXIiOiJkaWQ6d2ViOmV4YW1wbGUuY29tOmFnZW50LWEiLCJ2YWxpZEZyb20iOiIyMDI2LTA1LTIwVDA4OjAwOjAwWiIsImNyZWRlbnRpYWxTdWJqZWN0Ijp7ImlkIjoiZGlkOndlYjpleGFtcGxlLmNvbTphZ2VudC1iIiwiYWFlIjp7Im1hbmRhdGUiOnsiYWN0aW9ucyI6WyJyZWFkIiwiYm9vayIsInBheSJdLCJkZWxlZ2F0aW9uIjp7ImRlbGVnYXRvcl9kaWQiOiJkaWQ6d2ViOmV4YW1wbGUuY29tOmFnZW50LWEiLCJkZWxlZ2F0b3JfYWFlX2lkIjoidXJuOnV1aWQ6MDAwMDAwMTAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMGEwIiwiZGVsZWdhdG9yX2FhZV91cmkiOiJodHRwczovL2FhZS5leGFtcGxlL3AvdXJuOnV1aWQ6MDAwMDAwMTAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMGEwIiwiZGVwdGgiOjEsIm1heF9kZXB0aCI6Mn19LCJjb25zdHJhaW50cyI6eyJtYXhfdHJhbnNhY3Rpb25fdmFsdWUiOnsidmFsdWUiOjEwMDAwMDAsImN1cnJlbmN5IjoiVVNEIiwicmVxdWlyZWQiOnRydWV9fSwidmFsaWRpdHkiOnsibm90X2JlZm9yZSI6IjIwMjYtMDUtMjBUMDg6MDA6MDBaIiwibm90X2FmdGVyIjoiMjAyNi0wNS0yMFQxNjowMDowMFoiLCJzaW5nbGVfdXNlIjpmYWxzZX19fX0.zjTVXoCP417K22DMpcgdr6gnsbytjijayVC6XQbzB--E3EtioNmykwK9mfTE77uBOHU6c-ZYoe21wSyMHwCMCg",
+    "context": {
+      "current_time": "2026-05-20T12:00:00Z",
+      "requested_action": "read",
+      "action_context": {
+        "amount": 50,
+        "currency": "USD"
+      },
+      "subject_binding": {
+        "challenge_response_valid": true
+      },
+      "delegation_chain": []
+    }
+  },
+  "expected": {
+    "result": "REJECT",
+    "verification_step": 9,
+    "rejection_reason": "delegation_ancestor_missing"
+  },
+  "rationale": "Section 5 step 9 requires the relying party to verify every ancestor AAE in the chain, and a delegated AAE derives its authority only from its parent. The parent named by delegator_aae_id is not supplied, so neither the parent nor a root can be verified and the subordination checks of Section 3 have nothing to compare against. A self-signed delegated AAE must not stand on its own: it is rejected at step 9.",
+  "verification_mode": "structural"
+}
