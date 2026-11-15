@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the 15 AAE conformance vectors.
+"""Build the 19 AAE conformance vectors.
 
 Loads the committed test keys (tools/genkeys.py), constructs an AAE Verifiable
 Credential for each vector, signs it as a JWS in compact serialization, and
@@ -592,6 +592,86 @@ def vectors():
         "rationale": "Section 3 requires a currency-valued delegated constraint to use the same currency as the parent unless an explicitly configured conversion policy exists; if the currencies differ and no such policy exists, the delegated AAE MUST be rejected. The child uses EUR against a USD parent, so it is rejected at step 9.",
     })
 
+    # 16-19: the delegation chain must end at a root AAE (§5 step 9). The walk
+    # follows delegator_aae_id from the presented AAE; a parent that is not
+    # supplied, or an id that comes round again, rejects the chain.
+    def step9_context(chain):
+        return {
+            "current_time": NOON,
+            "requested_action": "read",
+            "action_context": {"amount": 50, "currency": "USD"},
+            "subject_binding": {"challenge_response_valid": True},
+            "delegation_chain": chain,
+        }
+
+    def delegated(vc_id, delegator, subject, parent_id, depth, actions, cap):
+        return vc(vc_id, delegator, subject, {
+            "mandate": {
+                "actions": actions,
+                "delegation": {
+                    "delegator_did": delegator, "delegator_aae_id": parent_id,
+                    "delegator_aae_uri": "https://aae.example/p/" + parent_id,
+                    "depth": depth, "max_depth": 2,
+                },
+            },
+            "constraints": {"max_transaction_value": max_tx(cap, "USD")},
+            "validity": {"not_before": NB, "not_after": NA, "single_use": False},
+        })
+
+    # 16 — delegated AAE presented with no ancestors at all (REJECT)
+    orphan = delegated("urn:uuid:00000010-0000-4000-8000-000000000010", AGENT_A, AGENT_B,
+                       "urn:uuid:00000010-0000-4000-8000-0000000000a0", 1,
+                       ["read", "book", "pay"], 1000000)
+    out.append({
+        "id": "aae-vector-16",
+        "name": "Delegated AAE without ancestors — reject",
+        "description": "Depth-1 delegated AAE that grants itself read, book and pay up to 1,000,000 USD, presented with an empty delegation_chain.",
+        "section_ref": "draft-kroehl-agentic-trust-aae-00 §3, §5 step 9 (chain to a root)",
+        "input": {"secured_aae": sign_jws(orphan, AGENT_A_KEY), "context": step9_context([])},
+        "expected": {"result": "REJECT", "verification_step": 9, "rejection_reason": "delegation_ancestor_missing"},
+        "rationale": "Section 5 step 9 requires the relying party to verify every ancestor AAE in the chain, and a delegated AAE derives its authority only from its parent. The parent named by delegator_aae_id is not supplied, so neither the parent nor a root can be verified and the subordination checks of Section 3 have nothing to compare against. A self-signed delegated AAE must not stand on its own: it is rejected at step 9.",
+    })
+
+    # 17 — vector 06 with the root omitted from the chain (REJECT)
+    out.append({
+        "id": "aae-vector-17",
+        "name": "Delegation chain without its root — reject",
+        "description": "The depth-2 delegated AAE of vector 06, presented with its depth-1 parent but without the root AAE.",
+        "section_ref": "draft-kroehl-agentic-trust-aae-00 §3, §5 step 9 (chain to a root)",
+        "input": {"secured_aae": d2_jws, "context": step9_context([d1_jws])},
+        "expected": {"result": "REJECT", "verification_step": 9, "rejection_reason": "delegation_ancestor_missing"},
+        "rationale": "The walk follows delegator_aae_id from the presented AAE: agent-c's parent (agent-b's AAE) is supplied, but agent-b's parent, the root AAE, is not. The chain does not end at an AAE without a delegation member, so the root's delegation_policy and the first link cannot be checked. Every ancestor must be verified (§5 step 9); a missing one rejects at step 9.",
+    })
+
+    # 18 — two delegated AAEs that name each other as parent (REJECT)
+    mutual_x = "urn:uuid:00000012-0000-4000-8000-0000000000e1"
+    mutual_y = "urn:uuid:00000012-0000-4000-8000-0000000000e2"
+    x18 = delegated(mutual_x, AGENT_A, AGENT_B, mutual_y, 2, ["read"], 100)
+    y18 = delegated(mutual_y, AGENT_B, AGENT_A, mutual_x, 1, ["read"], 300)
+    out.append({
+        "id": "aae-vector-18",
+        "name": "Two delegated AAEs naming each other as parent — reject",
+        "description": "Delegated AAE X names Y as its parent and Y names X; no root AAE exists. X is presented with Y in the delegation_chain.",
+        "section_ref": "draft-kroehl-agentic-trust-aae-00 §5 step 9 (cycle detection)",
+        "input": {"secured_aae": sign_jws(x18, AGENT_A_KEY),
+                  "context": step9_context([sign_jws(y18, AGENT_B_KEY)])},
+        "expected": {"result": "REJECT", "verification_step": 9, "rejection_reason": "delegation_cycle_detected"},
+        "rationale": "Section 5 step 9 requires the relying party to keep the set of AAE ids visited in the current path and to reject as soon as one appears twice. Walking from X to its parent Y and on to Y's parent returns to X, so the path never reaches a root and is rejected at step 9. Each link taken alone looks well formed; only the walk shows the loop.",
+    })
+
+    # 19 — a delegated AAE that names itself as parent (REJECT)
+    self_id = "urn:uuid:00000013-0000-4000-8000-000000000013"
+    self19 = delegated(self_id, AGENT_A, AGENT_B, self_id, 1, ["read"], 100)
+    out.append({
+        "id": "aae-vector-19",
+        "name": "Delegated AAE naming itself as parent — reject",
+        "description": "Delegated AAE whose delegator_aae_id is its own id, presented with an empty delegation_chain.",
+        "section_ref": "draft-kroehl-agentic-trust-aae-00 §5 step 9 (cycle detection)",
+        "input": {"secured_aae": sign_jws(self19, AGENT_A_KEY), "context": step9_context([])},
+        "expected": {"result": "REJECT", "verification_step": 9, "rejection_reason": "delegation_cycle_detected"},
+        "rationale": "The presented AAE's id is the first entry of the visited set. Its delegator_aae_id names that same id, so the id appears a second time on the first step of the walk and the chain is rejected at step 9 (§5 step 9, cycle detection), whether or not a copy of the envelope is also supplied in delegation_chain.",
+    })
+
     return out
 
 
@@ -613,6 +693,10 @@ def main() -> None:
         "aae-vector-13": "13-unrecognized-required-constraint.json",
         "aae-vector-14": "14-cty-header-wrong.json",
         "aae-vector-15": "15-currency-mismatch-delegation.json",
+        "aae-vector-16": "16-delegation-no-ancestors.json",
+        "aae-vector-17": "17-delegation-root-omitted.json",
+        "aae-vector-18": "18-delegation-mutual-parents.json",
+        "aae-vector-19": "19-delegation-self-parent.json",
     }
     # verification_mode (#2, enum runtime|structural). Rule: runtime = the
     # determining check consults live external state (clock for §2.4 validity,
@@ -635,6 +719,10 @@ def main() -> None:
         "aae-vector-13": "structural",  # step 7 unrecognized required constraint — document shape
         "aae-vector-14": "structural",  # step 2 cty header — document field
         "aae-vector-15": "structural",  # step 9 currency mismatch — document compare
+        "aae-vector-16": "structural",  # step 9 ancestor missing — path over supplied documents
+        "aae-vector-17": "structural",  # step 9 ancestor missing — path over supplied documents
+        "aae-vector-18": "structural",  # step 9 cycle — visited-id set over path documents
+        "aae-vector-19": "structural",  # step 9 cycle — visited-id set over path documents
     }
     for v in vectors():
         v["verification_mode"] = mode[v["id"]]

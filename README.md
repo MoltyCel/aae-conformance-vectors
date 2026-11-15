@@ -1,9 +1,9 @@
-# AAE Conformance Vectors v1.6.0
+# AAE Conformance Vectors v1.7.0
 
 Test vectors for the Agent Authorization Envelope (AAE) Internet-Draft. Each
 vector set is built against one published revision:
 
-- native, `vectors/` (15, the delegation and revocation cases among them):
+- native, `vectors/` (19, the delegation and revocation cases among them):
   [draft-kroehl-agentic-trust-aae-00](https://datatracker.ietf.org/doc/draft-kroehl-agentic-trust-aae/00/)
 - composition, `interop/*/vectors/` (6):
   [draft-kroehl-agentic-trust-aae-00](https://datatracker.ietf.org/doc/draft-kroehl-agentic-trust-aae/00/)
@@ -29,7 +29,7 @@ Each vector specifies an input AAE (a signed JWS in compact serialization) and
 the expected verifier result, with a reference to the section of the draft that
 governs the case.
 
-Coverage of the 15 vectors:
+Coverage of the 19 vectors:
 
 | # | Vector | Result | Step | Mode | Draft section |
 |---|--------|--------|------|------|---------------|
@@ -48,6 +48,10 @@ Coverage of the 15 vectors:
 | 13 | Unrecognized required constraint | REJECT | 7 | structural | §2.3, §5 step 7 |
 | 14 | Wrong cty protected header | REJECT | 2 | structural | §2.1, §5 step 2 |
 | 15 | Currency mismatch in delegation | REJECT | 9 | structural | §3, §5 step 9 |
+| 16 | Delegated AAE without ancestors | REJECT | 9 | structural | §3, §5 step 9 |
+| 17 | Delegation chain without its root | REJECT | 9 | structural | §3, §5 step 9 |
+| 18 | Two delegated AAEs naming each other as parent | REJECT | 9 | structural | §5 step 9 |
+| 19 | Delegated AAE naming itself as parent | REJECT | 9 | structural | §5 step 9 |
 
 See [docs/CONFORMANCE.md](docs/CONFORMANCE.md) for the full vector-to-section
 mapping and the rationale per case.
@@ -59,7 +63,7 @@ mapping and the rationale per case.
 3. For each vector, compare your verifier's output against the `expected` field:
    `result` (ACCEPT or REJECT) and, for rejections, the `verification_step` at
    which the algorithm stops.
-4. To claim conformance against draft-kroehl-agentic-trust-aae-00, all 15
+4. To claim conformance against draft-kroehl-agentic-trust-aae-00, all 19
    vectors must match.
 
 A reference verifier is provided in
@@ -72,7 +76,7 @@ vectors pass.
 $ python3 examples/python-verify.py
 PASS  01-valid-root-aae.json                     ACCEPT @ step 7
 ...
-15/15 vectors passed
+19/19 vectors passed
 ```
 
 Requirements: Python 3.9+ and the `cryptography` package
@@ -96,7 +100,7 @@ covers writing the adapter (skeletons in Python and JavaScript under
 digest from the input, and which conformance claim a result supports. The wire format is
 [docs/RUNNER-PROTOCOL.md](docs/RUNNER-PROTOCOL.md). CI runs both runners against
 [`adapters/python-reference/`](adapters/python-reference/), the reference verifiers behind
-the protocol, and requires 83/83 from each.
+the protocol, and requires 87/87 from each.
 
 ## Resume scenarios
 
@@ -130,7 +134,7 @@ rather than one widened one:
 
 | Schema | Governs | Input | Answers |
 |---|---|---|---|
-| [`vector-schema.json`](schema/vector-schema.json) | the 15 native vectors in `vectors/` | one JWS plus context | ACCEPT / REJECT at a numbered §5 step |
+| [`vector-schema.json`](schema/vector-schema.json) | the 19 native vectors in `vectors/` | one JWS plus context | ACCEPT / REJECT at a numbered §5 step |
 | [`enforce-vector-schema.json`](schema/enforce-vector-schema.json) | `vectors/enforce/` | a mandate plus a transaction, or a record plus an authority proof | PERMIT / DENY / PENDING, or RATIFIED / REJECTED, with a recomputable core digest |
 | [`interop-composition-vector-schema.json`](schema/interop-composition-vector-schema.json) | `interop/*/vectors/` | one AAE plus one artifact from another profile | eight staged rows |
 
@@ -257,7 +261,7 @@ rebuilds and re-signs every vector from the keys.
 
 ## Versioning
 
-Vector set version: **1.6.0**.
+Vector set version: **1.7.0**.
 
 Runner version: **1.1.0**, protocol `aae-conformance-runner/1`. The runners and their
 protocol are versioned on their own: a runner release changes no vector, and a vector
@@ -268,7 +272,7 @@ vector states the revision it was built against in its own `section_ref`:
 
 | Family | Count | Tracks |
 |---|---|---|
-| native, `vectors/` | 15 | draft-kroehl-agentic-trust-aae-00 |
+| native, `vectors/` | 19 | draft-kroehl-agentic-trust-aae-00 |
 | composition, `interop/*/vectors/` | 6 | draft-kroehl-agentic-trust-aae-00 + draft-yossif-psea-02 |
 | enforce, `vectors/enforce/` | 26 | draft-kroehl-agentic-trust-aae-02, enforce kernel 3.0 |
 | resume, `vectors/resume/` | 42 | draft-kroehl-agentic-trust-aae-02 (39 native requests, 3 enforce kernel 3.0) |
@@ -298,6 +302,15 @@ in `scenarios/permission-to-retry/`, their builder, and runners 1.1.0 with
 `--family resume`. It also releases everything listed as unreleased above. No existing
 vector and no expected result changed. The number 1.5.0 is held for the grant-attenuation
 vectors still in review (#14).
+v1.7.0 fixes step 9 of the reference verifier: it now walks from the presented AAE over
+`delegator_aae_id` to a root AAE, as -02 §5 step 9 states and the moltrust-api verifier
+does. Before, it checked only the links between the ancestors that were supplied, so a
+delegated AAE without its ancestors, without its root, in a two-envelope loop or naming
+itself as parent was accepted. A missing parent now rejects with the new code
+`delegation_ancestor_missing`, a repeated id with `delegation_cycle_detected`; supplied
+envelopes off the path are ignored, and an ACCEPT carries the optional field
+`root_issuer`. Four native vectors, 16 to 19, cover the cases. Vectors 01 to 15 and their
+expected results are unchanged. See [CHANGELOG.md](CHANGELOG.md).
 
 *(This section read "1.1.0" until v1.3.0 while the v1.2.0 tag already existed. The line was
 not bumped when the composition suite landed; it is correct from here on. The title carried

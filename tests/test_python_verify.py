@@ -105,7 +105,8 @@ def test_control_valid_depth1_chain_accepts():
     rejections below are caused by the one field each test changes."""
     child_jws, chain = _chain()
     got = verifier.verify(child_jws, _context(delegation_chain=chain))
-    assert got == {"result": "ACCEPT", "verification_step": 9, "rejection_reason": None}
+    assert got == {"result": "ACCEPT", "verification_step": 9, "rejection_reason": None,
+                   "root_issuer": bv.REGISTRY}
 
 
 # --- fix (a): constraint value that is not an object -------------------------
@@ -154,15 +155,15 @@ def test_delegation_from_root_without_delegation_policy_rejected(policy, detail)
 
 # --- fix (c): delegator_aae_id must name the supplied parent -----------------
 
-def test_delegator_aae_id_mismatch_rejected():
-    """-00 §3 (-02 §3): delegator_aae_id is "The id of the parent AAE"; the link
-    is checked in §5 step 9 (-02 §5 step 9 makes it explicit:
-    "mandate.delegation.delegator_aae_id names the parent")."""
+def test_delegator_aae_id_naming_an_unsupplied_parent_rejected():
+    """-00 §3 (-02 §3): delegator_aae_id is "The id of the parent AAE", and
+    -02 §5 step 9: "mandate.delegation.delegator_aae_id names the parent; if no
+    supplied ancestor carries that id, the verdict is DENY". The supplied root
+    carries a different id, so it is not on the path and the parent is missing."""
     child_jws, chain = _chain(delegator_aae_id=OTHER_ID)
     got = verifier.verify(child_jws, _context(delegation_chain=chain))
-    assert got == _reject(
-        9, "delegator_aae_id_mismatch",
-        f"node 1 names delegator_aae_id {OTHER_ID!r}, but the supplied parent node 0 has id {ROOT_ID!r}")
+    assert got == _reject(9, "delegation_ancestor_missing",
+                          f"parent AAE {OTHER_ID!r} is not in delegation_chain")
 
 
 # --- fix (a), reached through examples/composition-verify.py -----------------
@@ -189,26 +190,26 @@ def test_composition_verify_string_constraint_value_rejected():
     assert stages["decision"]["value"] == "REFUSED"
 
 
-def test_delegator_aae_id_mismatch_detail_names_nodes_at_depth_2():
+def test_detail_names_nodes_from_the_root_at_depth_2():
     """Node indices count from the root: in registry -> agent-a -> agent-b ->
-    agent-c the presented AAE is node 2 and its parent node 1."""
-    mid_jws, chain = _chain()
-    leaf = bv.vc("urn:uuid:7e570000-0000-4000-8000-0000000000c2", bv.AGENT_B, bv.AGENT_C, {
+    agent-c the presented AAE is node 2, its parent node 1 and the root node 0."""
+    _, chain = _chain()
+    mid = bv.vc(CHILD_ID, bv.AGENT_A, bv.AGENT_B, {
         "mandate": {
             "actions": ["read"],
             "delegation": {
-                "delegator_did": bv.AGENT_B, "delegator_aae_id": OTHER_ID,
-                "delegator_aae_uri": "https://aae.example/p/" + OTHER_ID,
-                "depth": 2, "max_depth": 2,
+                "delegator_did": bv.AGENT_A, "delegator_aae_id": ROOT_ID,
+                "delegator_aae_uri": "https://aae.example/p/" + ROOT_ID,
+                "depth": 1, "max_depth": 2,
             },
         },
-        "constraints": {"max_transaction_value": bv.max_tx(100, "USD")},
+        "constraints": {"max_transaction_value": "300 USD"},
         "validity": {"not_before": bv.NB, "not_after": bv.NA, "single_use": False},
     })
-    got = verifier.verify(bv.sign_jws(leaf, bv.AGENT_B_KEY), _context(delegation_chain=chain + [mid_jws]))
-    assert got == _reject(
-        9, "delegator_aae_id_mismatch",
-        f"node 2 names delegator_aae_id {OTHER_ID!r}, but the supplied parent node 1 has id {CHILD_ID!r}")
+    leaf = _leaf(CHILD_ID)
+    got = verifier.verify(leaf, _context(delegation_chain=chain + [bv.sign_jws(mid, bv.AGENT_A_KEY)]))
+    assert got == _reject(9, "constraint_unevaluable",
+                          "node 1 constraint 'max_transaction_value' is not an object")
 
 
 # --- fix (a) for ancestors: non-object constraint value during the step-9 walk
@@ -229,3 +230,138 @@ def test_ancestor_string_constraint_value_rejected_at_step9(root_constraints, re
     child_jws, chain = _chain(root_constraints=root_constraints)
     got = verifier.verify(child_jws, _context(delegation_chain=chain))
     assert got == _reject(9, reason, f"node 0 constraint {ctype!r} is not an object")
+
+
+# --- AAE-F1: the step-9 walk must end at a root AAE ---------------------------
+#
+# Step 9 follows delegator_aae_id from the presented AAE (-02 §5 step 9: the
+# relying party "MUST walk the chain by following
+# mandate.delegation.delegator_aae_id from the presented AAE outward"). Before
+# the fix only the links between supplied envelopes were checked, so each case
+# below was accepted at step 9.
+
+LEAF_ID = "urn:uuid:7e570000-0000-4000-8000-0000000000c2"
+X_ID = "urn:uuid:7e570000-0000-4000-8000-0000000000e1"
+Y_ID = "urn:uuid:7e570000-0000-4000-8000-0000000000e2"
+
+
+def _delegated(vc_id, delegator, subject, parent_id, depth, cap=100, actions=("read",)):
+    return bv.vc(vc_id, delegator, subject, {
+        "mandate": {
+            "actions": list(actions),
+            "delegation": {
+                "delegator_did": delegator, "delegator_aae_id": parent_id,
+                "delegator_aae_uri": "https://aae.example/p/" + parent_id,
+                "depth": depth, "max_depth": 2,
+            },
+        },
+        "constraints": {"max_transaction_value": bv.max_tx(cap, "USD")},
+        "validity": {"not_before": bv.NB, "not_after": bv.NA, "single_use": False},
+    })
+
+
+def _leaf(parent_id: str = CHILD_ID) -> str:
+    """agent-c's depth-2 AAE, delegated by agent-b."""
+    return bv.sign_jws(_delegated(LEAF_ID, bv.AGENT_B, bv.AGENT_C, parent_id, 2), bv.AGENT_B_KEY)
+
+
+def _honest_depth2() -> tuple[str, str, str]:
+    """(leaf, mid, root) of a valid registry -> agent-a -> agent-b -> agent-c chain."""
+    mid_jws, (root_jws,) = _chain()
+    return _leaf(), mid_jws, root_jws
+
+
+def _cases():
+    leaf, mid, root = _honest_depth2()
+    a, b = bv.AGENT_A_KEY, bv.AGENT_B_KEY
+    orphan = bv.sign_jws(_delegated("urn:uuid:7e570000-0000-4000-8000-0000000000d1", bv.AGENT_A,
+                                    bv.AGENT_B, ROOT_ID, 1, 1000000, ("read", "book", "pay")), a)
+    x = bv.sign_jws(_delegated(X_ID, bv.AGENT_A, bv.AGENT_B, Y_ID, 2), a)
+    y = bv.sign_jws(_delegated(Y_ID, bv.AGENT_B, bv.AGENT_A, X_ID, 1, 300), b)
+    me = bv.sign_jws(_delegated(X_ID, bv.AGENT_A, bv.AGENT_B, X_ID, 1), a)
+    return {
+        "1-no-ancestors": (orphan, [], "delegation_ancestor_missing"),
+        "1-depth2-empty-chain": (leaf, [], "delegation_ancestor_missing"),
+        "2-root-omitted": (leaf, [mid], "delegation_ancestor_missing"),
+        "3-mutual-counterpart-supplied": (x, [y], "delegation_cycle_detected"),
+        "3-mutual-counterpart-absent": (x, [], "delegation_ancestor_missing"),
+        "4-self-parent": (me, [], "delegation_cycle_detected"),
+        "4-self-parent-also-supplied": (me, [me], "delegation_cycle_detected"),
+    }
+
+
+@pytest.mark.parametrize("case", sorted(_cases()))
+def test_reported_chains_rejected_at_step9(case):
+    presented, chain, reason = _cases()[case]
+    got = verifier.verify(presented, _context(delegation_chain=chain))
+    assert (got["result"], got["verification_step"], got["rejection_reason"]) == ("REJECT", 9, reason)
+
+
+def test_silence_probe_honest_depth2_chain_accepts_with_root_issuer():
+    leaf, mid, root = _honest_depth2()
+    got = verifier.verify(leaf, _context(delegation_chain=[root, mid]))
+    assert got == {"result": "ACCEPT", "verification_step": 9, "rejection_reason": None,
+                   "root_issuer": bv.REGISTRY}
+
+
+def test_chain_order_does_not_matter():
+    """-02 §5 step 9: the supplied ancestors are not ordered; the walk indexes them by id."""
+    leaf, mid, root = _honest_depth2()
+    got = verifier.verify(leaf, _context(delegation_chain=[mid, root]))
+    assert got["result"] == "ACCEPT" and got["root_issuer"] == bv.REGISTRY
+
+
+def _off_path_extras():
+    other_root = bv.vc(OTHER_ID, bv.REGISTRY, bv.AGENT_A, {
+        "mandate": bv.root_mandate(["read"], delegation_policy={"max_depth": 2}),
+        "constraints": {"max_transaction_value": bv.max_tx(500, "USD")},
+        "validity": {"not_before": bv.NB, "not_after": bv.NA, "single_use": False},
+    })
+    good = bv.sign_jws(other_root, bv.REGISTRY_KEY)
+    h, p, sig = good.split(".")
+    bad_sig = f"{h}.{p}.{sig[:-4]}AAAA"
+    expired = bv.vc(OTHER_ID, bv.REGISTRY, bv.AGENT_A, dict(
+        other_root["credentialSubject"]["aae"],
+        validity={"not_before": bv.NB, "not_after": bv.NB, "single_use": False}))
+    return {
+        "valid-unrelated-root": [good],
+        "bad-signature": [bad_sig],
+        "expired": [bv.sign_jws(expired, bv.REGISTRY_KEY)],
+        "not-a-jws": ["not-a-jws"],
+        "revoked-ancestor-off-path": [good],
+    }
+
+
+@pytest.mark.parametrize("extra", sorted(_off_path_extras()))
+def test_off_path_ancestors_do_not_change_an_accept(extra):
+    leaf, mid, root = _honest_depth2()
+    chain = [root] + _off_path_extras()[extra] + [mid]
+    ctx = _context(delegation_chain=chain)
+    if extra == "revoked-ancestor-off-path":
+        ctx["revocation_responses"] = {OTHER_ID: {"revoked": True}}
+    got = verifier.verify(leaf, ctx)
+    assert got == {"result": "ACCEPT", "verification_step": 9, "rejection_reason": None,
+                   "root_issuer": bv.REGISTRY}
+
+
+@pytest.mark.parametrize("extra", sorted(_off_path_extras()))
+def test_off_path_ancestors_do_not_change_a_reject(extra):
+    leaf, mid, root = _honest_depth2()
+    got = verifier.verify(leaf, _context(delegation_chain=[mid] + _off_path_extras()[extra]))
+    assert got == _reject(9, "delegation_ancestor_missing",
+                          f"parent AAE {ROOT_ID!r} is not in delegation_chain")
+
+
+def test_parent_supplied_twice_is_rejected_not_picked():
+    """-02 §5 step 9: two ancestors claiming one identity make the chain
+    ambiguous, and the relying party MUST reject rather than pick one."""
+    leaf, mid, root = _honest_depth2()
+    got = verifier.verify(leaf, _context(delegation_chain=[root, mid, mid]))
+    assert got == _reject(9, "delegation_cycle_detected",
+                          f"parent AAE {CHILD_ID!r} is supplied more than once")
+
+
+def test_root_aae_accept_names_its_own_issuer():
+    got = verifier.verify(_root_aae({"max_transaction_value": bv.max_tx(500, "USD")}), _context())
+    assert got == {"result": "ACCEPT", "verification_step": 7, "rejection_reason": None,
+                   "root_issuer": bv.REGISTRY}

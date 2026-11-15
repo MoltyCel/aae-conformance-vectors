@@ -5,7 +5,7 @@ How the conformance runners talk to an implementation under test. Both runners, 
 speak exactly this protocol, compare exactly the fields listed here, and print the same
 result lines. An adapter written against this page works with either.
 
-The protocol covers the 15 native vectors (`vectors/*.json`), the 26 enforce vectors
+The protocol covers the 19 native vectors (`vectors/*.json`), the 26 enforce vectors
 (`vectors/enforce/*.json`) and the 42 resume vectors (`vectors/resume/*.json`). The
 composition vectors under `interop/` are not part of it; they are checked row by row by
 `examples/composition-verify.py`.
@@ -40,8 +40,8 @@ reference.
 
 One process per vector is slower than a long-lived process, and was chosen anyway: a crash,
 a hang or leftover state in one vector cannot leak into the next, there is no framing to
-get wrong, and an adapter is a plain filter from stdin to stdout. A run of all 83 vectors
-starts the implementation 107 times (15 + 26 + 42, plus 24 determinism re-runs: enforce
+get wrong, and an adapter is a plain filter from stdin to stdout. A run of all 87 vectors
+starts the implementation 111 times (19 + 26 + 42, plus 24 determinism re-runs: enforce
 vectors 01-21 and the three R05 resume vectors).
 
 ## Request

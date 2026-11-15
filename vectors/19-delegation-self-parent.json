@@ -1,0 +1,28 @@
+{
+  "id": "aae-vector-19",
+  "name": "Delegated AAE naming itself as parent \u2014 reject",
+  "description": "Delegated AAE whose delegator_aae_id is its own id, presented with an empty delegation_chain.",
+  "section_ref": "draft-kroehl-agentic-trust-aae-00 \u00a75 step 9 (cycle detection)",
+  "input": {
+    "secured_aae": "eyJhbGciOiJFZERTQSIsImN0eSI6ImFhZStqc29uIiwia2lkIjoiZGlkOndlYjpleGFtcGxlLmNvbTphZ2VudC1hI2tleS0xIn0.eyJAY29udGV4dCI6WyJodHRwczovL3d3dy53My5vcmcvbnMvY3JlZGVudGlhbHMvdjIiLCJodHRwczovL21vbHRydXN0LmNoL2NvbnRleHRzL2FhZS92MSJdLCJ0eXBlIjpbIlZlcmlmaWFibGVDcmVkZW50aWFsIiwiQWdlbnRBdXRob3JpemF0aW9uRW52ZWxvcGUiXSwiaWQiOiJ1cm46dXVpZDowMDAwMDAxMy0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMTMiLCJpc3N1ZXIiOiJkaWQ6d2ViOmV4YW1wbGUuY29tOmFnZW50LWEiLCJ2YWxpZEZyb20iOiIyMDI2LTA1LTIwVDA4OjAwOjAwWiIsImNyZWRlbnRpYWxTdWJqZWN0Ijp7ImlkIjoiZGlkOndlYjpleGFtcGxlLmNvbTphZ2VudC1iIiwiYWFlIjp7Im1hbmRhdGUiOnsiYWN0aW9ucyI6WyJyZWFkIl0sImRlbGVnYXRpb24iOnsiZGVsZWdhdG9yX2RpZCI6ImRpZDp3ZWI6ZXhhbXBsZS5jb206YWdlbnQtYSIsImRlbGVnYXRvcl9hYWVfaWQiOiJ1cm46dXVpZDowMDAwMDAxMy0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMTMiLCJkZWxlZ2F0b3JfYWFlX3VyaSI6Imh0dHBzOi8vYWFlLmV4YW1wbGUvcC91cm46dXVpZDowMDAwMDAxMy0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMTMiLCJkZXB0aCI6MSwibWF4X2RlcHRoIjoyfX0sImNvbnN0cmFpbnRzIjp7Im1heF90cmFuc2FjdGlvbl92YWx1ZSI6eyJ2YWx1ZSI6MTAwLCJjdXJyZW5jeSI6IlVTRCIsInJlcXVpcmVkIjp0cnVlfX0sInZhbGlkaXR5Ijp7Im5vdF9iZWZvcmUiOiIyMDI2LTA1LTIwVDA4OjAwOjAwWiIsIm5vdF9hZnRlciI6IjIwMjYtMDUtMjBUMTY6MDA6MDBaIiwic2luZ2xlX3VzZSI6ZmFsc2V9fX19.GHIAMy-U5kAs7Zlf_jF59oIXfvV8qKcCltGTKensq_pvq4L3fxNe8opZ1fBjQe-KZzAGDp0BHBVqX3KRCphlAw",
+    "context": {
+      "current_time": "2026-05-20T12:00:00Z",
+      "requested_action": "read",
+      "action_context": {
+        "amount": 50,
+        "currency": "USD"
+      },
+      "subject_binding": {
+        "challenge_response_valid": true
+      },
+      "delegation_chain": []
+    }
+  },
+  "expected": {
+    "result": "REJECT",
+    "verification_step": 9,
+    "rejection_reason": "delegation_cycle_detected"
+  },
+  "rationale": "The presented AAE's id is the first entry of the visited set. Its delegator_aae_id names that same id, so the id appears a second time on the first step of the walk and the chain is rejected at step 9 (\u00a75 step 9, cycle detection), whether or not a copy of the envelope is also supplied in delegation_chain.",
+  "verification_mode": "structural"
+}
